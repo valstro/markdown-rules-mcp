@@ -1,0 +1,58 @@
+{
+  "name": "markdown-rules",
+  "version": "0.1.0",
+  "description": "A Model Context Protocol server with Exa for web search, academic paper search, and Twitter/X.com search. Provides real-time web searches with configurable tool selection, allowing users to enable or disable specific search capabilities. Supports customizable result counts, live crawling options, and returns content from the most relevant websites.",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/valstro/markdown-rules-mcp.git"
+  },
+  "bin": {
+    "markdown-rules": "./build/index.js"
+  },
+  "files": [
+    "build"
+  ],
+  "keywords": [
+    "mcp",
+    "model context protocol",
+    "markdown",
+    "rules",
+    "documentation",
+    "docs",
+    "cursor",
+    "windsurf",
+    "copilot",
+    "ai"
+  ],
+  "author": "Danny @ Valstro",
+  "scripts": {
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "build": "vitest --watch=false && tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+    "prepare": "npm run build",
+    "watch": "tsc --watch",
+    "inspector": "npm run build && LOG_LEVEL=debug MARKDOWN_GLOB_PATTERN=./src/mocks/**/*.md npx @modelcontextprotocol/inspector node build/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.7.0",
+    "dotenv": "^16.4.5",
+    "glob": "^11.0.2",
+    "gray-matter": "^4.0.3",
+    "micromatch": "^4.0.8",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/micromatch": "^4.0.9",
+    "@types/node": "^20.11.24",
+    "@types/yargs": "^17.0.33",
+    "prettier": "^3.4.2",
+    "typescript": "^5.3.3",
+    "vitest": "^3.1.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

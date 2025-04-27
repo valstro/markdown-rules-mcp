@@ -1,1 +1,1 @@
-# markdown-rules-mcp
+# Markdown Rules MCP Server
