@@ -7,4 +7,4 @@ alwaysApply: false
 
 ## Local Development
 
-See: [config.json](../files/database.config.json?include=true)
+See: [config.json](../files/database.config.json?mdr-include=true)

@@ -1,9 +1,14 @@
 import { logger } from "./logger.js";
 import { Config } from "./config.js";
-import { Doc, DocIndex, IDocIndexService } from "./types.js";
-import { FileSystemService } from "./file-system.service.js";
-import { DocParserService } from "./doc-parser.service.js";
-import { LinkExtractorService } from "./link-extractor.service.js";
+import {
+  Doc,
+  DocIndex,
+  IDocIndexService,
+  IDocParserService,
+  IFileSystemService,
+  ILinkExtractorService,
+} from "./types.js";
+import { getErrorMsg } from "./util.js";
 
 /**
  * Manages the index of all documents in the project.
@@ -16,6 +21,7 @@ import { LinkExtractorService } from "./link-extractor.service.js";
  */
 export class DocIndexService implements IDocIndexService {
   private docMap: DocIndex = new Map();
+  private pendingDocPromises: Map<string, Promise<Doc>> = new Map(); // Cache for ongoing fetches
 
   get docs(): Doc[] {
     return Array.from(this.docMap.values());
@@ -23,9 +29,9 @@ export class DocIndexService implements IDocIndexService {
 
   constructor(
     private config: Config,
-    private fileSystem: FileSystemService,
-    private docParser: DocParserService,
-    private linkExtractor: LinkExtractorService
+    private fileSystem: IFileSystemService,
+    private docParser: IDocParserService,
+    private linkExtractor: ILinkExtractorService
   ) {}
 
   /**
@@ -35,6 +41,7 @@ export class DocIndexService implements IDocIndexService {
    */
   async buildIndex(): Promise<DocIndex> {
     this.docMap.clear();
+    this.pendingDocPromises.clear(); // Also clear pending promises on rebuild
 
     logger.info(
       `Building doc index from: ${this.fileSystem.getProjectRoot()} using glob: ${this.config.MARKDOWN_GLOB_PATTERN}`
@@ -85,8 +92,8 @@ export class DocIndexService implements IDocIndexService {
           logger.warn(`Document not found in map during link resolution: ${filePath}`);
           return []; // Skip if doc somehow disappeared
         }
-        // Only process markdown files for links
-        if (!doc.isMarkdown) {
+        // Only process non-error markdown files for links
+        if (!doc.isMarkdown || doc.isError) {
           return [];
         }
 
@@ -136,39 +143,53 @@ export class DocIndexService implements IDocIndexService {
     if (this.docMap.has(absoluteFilePath)) {
       return this.docMap.get(absoluteFilePath)!;
     }
+    // Check if a fetch for this doc is already in progress
+    if (this.pendingDocPromises.has(absoluteFilePath)) {
+      logger.debug(`Cache miss, but fetch in progress for: ${absoluteFilePath}`);
+      return this.pendingDocPromises.get(absoluteFilePath)!;
+    }
+
     logger.debug(`Cache miss. Reading file: ${absoluteFilePath}`);
 
-    try {
-      const fileContent = await this.fileSystem.readFile(absoluteFilePath);
-      const isMarkdown = this.docParser.isMarkdown(absoluteFilePath);
-      let doc: Doc;
-      if (isMarkdown) {
-        doc = this.docParser.parse(absoluteFilePath, fileContent);
-      } else {
-        // For non-markdown, create a basic doc entry without parsing frontmatter
-        doc = this.docParser.getBlankDoc(absoluteFilePath, fileContent);
-        doc.isMarkdown = false; // Ensure flag is false
+    // Start the fetch and store the promise
+    const fetchPromise = (async (): Promise<Doc> => {
+      try {
+        const fileContent = await this.fileSystem.readFile(absoluteFilePath);
+        const isMarkdown = this.docParser.isMarkdown(absoluteFilePath);
+        let doc: Doc;
+        if (isMarkdown) {
+          doc = this.docParser.parse(absoluteFilePath, fileContent);
+        } else {
+          // For non-markdown, create a basic doc entry without parsing frontmatter
+          doc = this.docParser.getBlankDoc(absoluteFilePath, {
+            content: fileContent,
+            isMarkdown: false,
+          });
+        }
+        this.docMap.set(absoluteFilePath, doc);
+        return doc;
+      } catch (error) {
+        // Log specific error type if available (e.g., ENOENT)
+        const errorMessage = getErrorMsg(error);
+        logger.error(
+          `Error reading or parsing file for graph: ${absoluteFilePath}. Error: ${errorMessage}`
+        );
+        // Create a minimal placeholder Doc
+        const errorDoc = this.docParser.getBlankDoc(absoluteFilePath, {
+          isError: true,
+          errorReason: `Error loading content: ${errorMessage}`,
+          isMarkdown: this.docParser.isMarkdown(absoluteFilePath),
+        });
+        this.docMap.set(absoluteFilePath, errorDoc); // Still add placeholder to map
+        return errorDoc;
+      } finally {
+        // Once fetch is complete (success or error), remove the pending promise
+        this.pendingDocPromises.delete(absoluteFilePath);
       }
+    })();
 
-      this.docMap.set(absoluteFilePath, doc);
-      return doc;
-    } catch (error) {
-      // Log specific error type if available (e.g., ENOENT)
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error(
-        `Error reading or parsing file for graph: ${absoluteFilePath}. Error: ${errorMessage}`
-      );
-      // Create a minimal placeholder Doc to avoid breaking the graph build,
-      // but ensure it's not added to pathsToProcess later if possible.
-      const errorDoc = this.docParser.getBlankDoc(
-        absoluteFilePath,
-        `Error loading content: ${errorMessage}`,
-        true
-      );
-      errorDoc.isMarkdown = this.docParser.isMarkdown(absoluteFilePath); // Keep isMarkdown consistent
-      this.docMap.set(absoluteFilePath, errorDoc); // Still add placeholder to map
-      return errorDoc;
-    }
+    this.pendingDocPromises.set(absoluteFilePath, fetchPromise);
+    return fetchPromise;
   }
 
   /**
@@ -187,5 +208,22 @@ export class DocIndexService implements IDocIndexService {
     docs.forEach((doc) => {
       this.docMap.set(doc.filePath, doc);
     });
+  }
+
+  /**
+   * Returns all markdown docs that are not global and have no auto-attachment globs.
+   * These are the docs that can be attached automatically by the agent based on the
+   * description.
+   */
+  getAgentAttachableDocs(): Doc[] {
+    return this.docs
+      .filter(
+        (doc) =>
+          doc.isMarkdown &&
+          doc.meta.description && // Must have a description
+          !doc.meta.alwaysApply && // Not global
+          (!doc.meta.globs || doc.meta.globs.length === 0) // No auto-attachment globs
+      )
+      .map((doc) => doc);
   }
 }

@@ -1,4 +1,4 @@
-import { vi } from "vitest";
+import { Mocked, vi } from "vitest";
 
 vi.mock("./logger.js", () => ({
   logger: {
@@ -8,3 +8,7 @@ vi.mock("./logger.js", () => ({
     error: vi.fn(),
   },
 }));
+
+export function unwrapMock<T>(mock: Mocked<T>): T {
+  return mock as unknown as T;
+}

@@ -51,12 +51,12 @@ describe("DocParserService", () => {
     });
 
     it("should set content if provided", () => {
-      const doc = docParserService.getBlankDoc(fileName, content);
+      const doc = docParserService.getBlankDoc(fileName, { content });
       expect(doc.content).toBe(content);
     });
 
     it("should set isError flag if provided", () => {
-      const doc = docParserService.getBlankDoc(fileName, content, true);
+      const doc = docParserService.getBlankDoc(fileName, { content, isError: true });
       expect(doc.isError).toBe(true);
     });
 

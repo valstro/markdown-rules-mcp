@@ -1,7 +1,6 @@
 import { logger } from "./logger.js";
 import { getErrorMsg } from "./util.js";
-import { DocLink, DocLinkRange, ILinkExtractorService } from "./types.js";
-import { FileSystemService } from "./file-system.service.js";
+import { DocLink, DocLinkRange, IFileSystemService, ILinkExtractorService } from "./types.js";
 
 /**
  * Extracts links from a markdown document.
@@ -11,47 +10,57 @@ import { FileSystemService } from "./file-system.service.js";
  * It uses a regular expression to find markdown links like [text](path).
  * It then converts the relative path to an absolute path using the file system service.
  * It also handles potential HTML entities like &amp; before parsing.
- * It supports query parameters `include`, `inline`, and `lines` for specific link behaviors.
+ * It supports query parameters `mdr-include`, `mdr-inline`, and `mdr-lines` for specific link behaviors.
+ * It captures the start and end character indices of the markdown link in the source content.
  *
  * @example
  * ```typescript
  * const linkExtractor = new LinkExtractorService(fileSystem);
  * const links = linkExtractor.extractLinks(docFilePath, docContent);
- * // Example link: [Include this](./some/doc.md?include=true&inline=true&lines=10-20)
+ * // Example link: [Include this](./some/doc.md?mdr-include=true&mdr-inline=true&mdr-lines=10-20)
  * ```
  */
 export class LinkExtractorService implements ILinkExtractorService {
-  static readonly INCLUDE_PARAM = "include";
-  static readonly INLINE_PARAM = "inline";
-  static readonly LINES_PARAM = "lines";
+  static readonly INCLUDE_PARAM = "mdr-include";
+  static readonly INLINE_PARAM = "mdr-inline";
+  static readonly LINES_PARAM = "mdr-lines";
 
-  constructor(private fileSystem: FileSystemService) {}
+  constructor(private fileSystem: IFileSystemService) {}
 
   extractLinks(docFilePath: string, docContent: string): DocLink[] {
     const linkedDocs: DocLink[] = [];
-    const linkRegex = /\[([^\]]+?)\]\(([^)]+)\)/g;
+    const linkRegex = /\[([^\]]+?)]\(([^)<>]+?)\)/g;
     let match: RegExpExecArray | null;
     const sourceDir = this.fileSystem.getDirname(docFilePath);
 
     while ((match = linkRegex.exec(docContent)) !== null) {
+      const fullMatchText = match[0];
       const anchorText = match[1];
       const linkTarget = match[2];
+      const startIndex = match.index;
+      const endIndex = startIndex + fullMatchText.length;
+
       const [relativePath] = linkTarget.split("?");
       const cleanedLinkTarget = linkTarget.replace(/&amp;/g, "&");
       const cleanedRelativePath = relativePath.replace(/&amp;/g, "&");
 
       try {
-        const url = new URL(cleanedLinkTarget, "file:///"); // Dummy base
+        const url = new URL(cleanedLinkTarget, `file://${sourceDir}/`);
 
         if (this.isParamTruthy(url, LinkExtractorService.INCLUDE_PARAM)) {
           const { isInline, inlineLinesRange } = this.parseInlineAndRange(url, docFilePath);
 
-          const absolutePath = this.fileSystem.resolvePath(sourceDir, cleanedRelativePath);
+          const absolutePath = cleanedRelativePath.startsWith("/")
+            ? this.fileSystem.resolvePath(
+                this.fileSystem.getProjectRoot(),
+                cleanedRelativePath.substring(1)
+              )
+            : this.fileSystem.resolvePath(sourceDir, cleanedRelativePath);
 
           logger.debug(
             `Found link: Anchor='${anchorText}', Target='${linkTarget}', RelativePath='${cleanedRelativePath}', AbsolutePath='${absolutePath}', SourceDir='${sourceDir}', Inline=${isInline}, Range=${
               inlineLinesRange ? `${inlineLinesRange.from}-${inlineLinesRange.to}` : "N/A"
-            }`
+            }, Indices=${startIndex}-${endIndex}`
           );
 
           linkedDocs.push({
@@ -59,14 +68,16 @@ export class LinkExtractorService implements ILinkExtractorService {
             isInline,
             inlineLinesRange,
             anchorText,
+            startIndex,
+            endIndex,
           });
         }
       } catch (error: unknown) {
         if (error instanceof TypeError && error.message.includes("Invalid URL")) {
-          logger.warn(`Skipping invalid URL format: ${cleanedLinkTarget} in ${docFilePath}`);
+          logger.warn(`Skipping link due to invalid URL format: ${linkTarget} in ${docFilePath}`);
         } else {
           logger.error(
-            `Error processing link: ${cleanedLinkTarget} in ${docFilePath}: ${getErrorMsg(error)}`
+            `Error processing link target "${linkTarget}" in ${docFilePath}: ${getErrorMsg(error)}`
           );
         }
       }
@@ -93,15 +104,19 @@ export class LinkExtractorService implements ILinkExtractorService {
     if (isInline && linesParam) {
       const parts = linesParam.split("-");
       if (parts.length === 2) {
-        const fromStr = parts[0];
-        const toStr = parts[1];
+        const fromStr = parts[0].trim();
+        const toStr = parts[1].trim();
         const fromNum = fromStr === "" ? 0 : Number(fromStr);
         const toNumOrEnd = toStr === "" || toStr.toLowerCase() === "end" ? "end" : Number(toStr);
 
-        if (!isNaN(fromNum) && (toNumOrEnd === "end" || !isNaN(toNumOrEnd))) {
-          if (toNumOrEnd !== "end" && fromNum > toNumOrEnd) {
+        if (!isNaN(fromNum) && (toNumOrEnd === "end" || (!isNaN(toNumOrEnd) && toNumOrEnd >= 0))) {
+          if (toNumOrEnd !== "end" && fromNum >= 0 && fromNum > toNumOrEnd) {
             logger.warn(
               `Invalid lines range "${linesParam}" in ${docFilePath}: start line (${fromNum}) is greater than end line (${toNumOrEnd}). Ignoring range.`
+            );
+          } else if (fromNum < 0) {
+            logger.warn(
+              `Invalid lines range "${linesParam}" in ${docFilePath}: start line (${fromNum}) cannot be negative. Ignoring range.`
             );
           } else {
             inlineLinesRange = {
@@ -111,7 +126,7 @@ export class LinkExtractorService implements ILinkExtractorService {
           }
         } else {
           logger.warn(
-            `Invalid lines format "${linesParam}" in ${docFilePath}. Expected N-M, -M, N-, or N-end. Ignoring range.`
+            `Invalid numeric value in lines format "${linesParam}" in ${docFilePath}. Expected N-M, -M, N-, or N-end. Ignoring range.`
           );
         }
       } else {
@@ -133,6 +148,6 @@ export class LinkExtractorService implements ILinkExtractorService {
    */
   isParamTruthy(url: URL, param: string): boolean {
     const paramValue = url.searchParams.get(param);
-    return paramValue !== null && (paramValue === "true" || paramValue === "1");
+    return paramValue !== null && (paramValue.toLowerCase() === "true" || paramValue === "1");
   }
 }

@@ -2,7 +2,7 @@ import { logger } from "./logger.js";
 import { z } from "zod";
 import matter from "gray-matter";
 import { getErrorMsg } from "./util.js";
-import { Doc, IDocParserService } from "./types.js";
+import { Doc, DocOverride, IDocParserService } from "./types.js";
 
 const docMetaSchema = z.object({
   description: z.string().optional().nullable(),
@@ -28,7 +28,7 @@ const docMetaSchema = z.object({
  */
 export class DocParserService implements IDocParserService {
   parse(fileName: string, fileContent: string): Doc {
-    const doc: Doc = this.getBlankDoc(fileName, fileContent);
+    const doc: Doc = this.getBlankDoc(fileName, { content: fileContent });
 
     try {
       const matterResult = matter(fileContent);
@@ -48,10 +48,10 @@ export class DocParserService implements IDocParserService {
     }
   }
 
-  getBlankDoc(fileName: string, content?: string, isError?: boolean): Doc {
+  getBlankDoc(fileName: string, docOverride?: DocOverride): Doc {
     return {
-      contentLinesBeforeParsed: this.countLines(content ?? ""),
-      content: this.trimContent(content ?? ""),
+      contentLinesBeforeParsed: this.countLines(docOverride?.content ?? ""),
+      content: this.trimContent(docOverride?.content ?? ""),
       meta: {
         description: undefined,
         globs: [],
@@ -60,7 +60,8 @@ export class DocParserService implements IDocParserService {
       filePath: fileName,
       linksTo: [],
       isMarkdown: this.isMarkdown(fileName),
-      isError: isError ?? false,
+      isError: docOverride?.isError ?? false,
+      errorReason: docOverride?.errorReason,
     };
   }
 
