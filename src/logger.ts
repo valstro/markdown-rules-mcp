@@ -3,10 +3,11 @@ import { config } from "./config.js";
 const logLevel = config.LOG_LEVEL;
 
 const logLevelMap = {
-  debug: 0,
-  info: 1,
-  warn: 2,
-  error: 3,
+  silent: 0,
+  debug: 1,
+  info: 2,
+  warn: 3,
+  error: 4,
 };
 
 const currentLogLevel = logLevelMap[logLevel];

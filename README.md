@@ -24,3 +24,28 @@ Keep the implementation simple & clean but implement ALL of the following requir
   - the order should be either:
     - `topologically sorted (post-order traversal)` - where the docs are sorted by their dependencies and by their type (always, related, auto, agent). dependents should be listed before their parents.
     - `topologically sorted (pre-order traversal)` - where the docs are sorted by their dependencies and by their type (always, related, auto, agent). parents should be listed before their dependents.
+
+
+
+
+## Rules for sorting.
+
+### Basic rules
+
+The natural order of the items is:
+  - `always` items sorted alphabetically.
+  - `auto` items sorted alphabetically.
+  - `agent` items sorted alphabetically.
+  - `manual` items sorted alphabetically.
+
+Because related items are items that are linked to from other items, they should be treated differently. If HOIST_CONTEXT is true, then related items should be displayed BEFORE the first item that links to them. Otherwise, related items should be displayed AFTER the first item that links to them.
+
+
+
+
+
+  
+
+
+
+

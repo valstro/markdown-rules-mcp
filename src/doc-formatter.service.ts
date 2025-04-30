@@ -1,36 +1,36 @@
-import micromatch from "micromatch";
 import { logger } from "./logger.js";
 import {
-  AttachedItem,
   AttachedItemFileType,
   ContextItem,
-  Doc,
   DocLinkRange,
   IDocFormatterService,
   IDocIndexService,
+  IFileSystemService,
 } from "./types.js";
 import { getErrorMsg } from "./util.js";
 
 export class DocFormatterService implements IDocFormatterService {
-  constructor(private docIndexService: IDocIndexService) {}
+  constructor(
+    private docIndexService: IDocIndexService,
+    private fileSystem: IFileSystemService
+  ) {}
 
   async formatDoc(item: ContextItem): Promise<string> {
     const { doc, type, linkedViaAnchor } = item;
     const fileType: AttachedItemFileType = doc.isMarkdown ? "doc" : "file";
 
-    const trimmedContent = doc.content?.replace(/^\s*\n+|\n+\s*$/g, "") ?? "";
-
-    const inlineFormattedDocs: string[] = [];
+    const inlineDocMap = new Map<string, string>();
     if (doc.isMarkdown && !doc.isError) {
-      for (const link of doc.linksTo) {
-        if (link.isInline) {
+      const inlineLinks = doc.linksTo.filter((link) => link.isInline);
+      await Promise.all(
+        inlineLinks.map(async (link) => {
           try {
             const inlineDoc = await this.docIndexService.getDoc(link.filePath);
             if (inlineDoc.isError) {
               logger.warn(
                 `Skipping inline expansion for error doc: ${link.filePath} in ${doc.filePath}`
               );
-              continue;
+              return;
             }
             let inlineContent = inlineDoc.content ?? "";
             inlineContent = this.extractRangeContent(inlineContent, link.inlineLinesRange);
@@ -39,18 +39,50 @@ export class DocFormatterService implements IDocFormatterService {
               : "";
             const escapedDescription = link.anchorText?.replace(/"/g, "&quot;") ?? "";
             const inlineTag = `<inline_doc description="${escapedDescription}" file="${link.filePath}"${rangeAttr}>\n${inlineContent}\n</inline_doc>`;
-            inlineFormattedDocs.push(inlineTag);
+
+            const key = link.filePath + "||" + link.rawLinkTarget;
+            inlineDocMap.set(key, inlineTag);
           } catch (error) {
             logger.error(
               `Failed to fetch or format inline doc ${link.filePath} referenced in ${doc.filePath}: ${getErrorMsg(error)}`
             );
           }
-        }
-      }
+        })
+      );
     }
 
-    const inlineContentBlock =
-      inlineFormattedDocs.length > 0 ? "\n\n" + inlineFormattedDocs.join("\n\n") : "";
+    let processedContent = "";
+    let lastIndex = 0;
+    const linkRegex = /\[([^\]]+?)\]\(([^)]+)\)/g;
+    let match: RegExpExecArray | null;
+    const sourceDir = this.fileSystem.getDirname(doc.filePath);
+    const contentToProcess = doc.content ?? "";
+
+    while ((match = linkRegex.exec(contentToProcess)) !== null) {
+      processedContent += contentToProcess.substring(lastIndex, match.index);
+      processedContent += match[0];
+      lastIndex = linkRegex.lastIndex;
+
+      const linkTarget = match[2];
+      const [relativePath] = linkTarget.split("?");
+      const cleanedRelativePath = relativePath.replace(/&amp;/g, "&");
+
+      try {
+        const absolutePath = this.fileSystem.resolvePath(sourceDir, cleanedRelativePath);
+        const lookupKey = absolutePath + "||" + linkTarget;
+
+        if (inlineDocMap.has(lookupKey)) {
+          processedContent += "\n" + inlineDocMap.get(lookupKey);
+        }
+      } catch (error) {
+        logger.warn(
+          `Could not process link target "${linkTarget}" in ${doc.filePath}: ${getErrorMsg(error)}`
+        );
+      }
+    }
+    processedContent += contentToProcess.substring(lastIndex);
+
+    const trimmedProcessedContent = processedContent.replace(/^\s*\n+|\n+\s*$/g, "");
 
     const descriptionSource =
       type === "related" ? (linkedViaAnchor ?? doc.meta.description) : doc.meta.description;
@@ -59,9 +91,9 @@ export class DocFormatterService implements IDocFormatterService {
     const descAttr = escapedDescription ? ` description="${escapedDescription}"` : "";
 
     if (fileType === "doc") {
-      return `<doc${descAttr} type="${type}" file="${doc.filePath}">\n${trimmedContent}${inlineContentBlock}\n</doc>`;
+      return `<doc${descAttr} type="${type}" file="${doc.filePath}">\n${trimmedProcessedContent}\n</doc>`;
     } else {
-      return `<file${descAttr} type="${type}" file="${doc.filePath}">\n${trimmedContent}${inlineContentBlock}\n</file>`;
+      return `<file${descAttr} type="${type}" file="${doc.filePath}">\n${trimmedProcessedContent}\n</file>`;
     }
   }
 

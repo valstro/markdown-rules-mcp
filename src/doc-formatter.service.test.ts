@@ -1,14 +1,24 @@
 import { describe, it, expect, vi, beforeEach, Mocked } from "vitest";
 import { DocFormatterService } from "./doc-formatter.service.js";
-import { IDocIndexService, Doc, ContextItem, DocLink, DocLinkRange } from "./types.js";
+import {
+  IDocIndexService,
+  Doc,
+  ContextItem,
+  DocLink,
+  DocLinkRange,
+  IFileSystemService,
+} from "./types.js";
 import { unwrapMock } from "../setup.tests.js"; // Assuming you have this helper
 import { createMockDoc, createMockDocIndexService } from "./doc-index.service.mock.js";
+import { createMockFileSystemService } from "./file-system.service.mock.js";
 
 describe("DocFormatterService", () => {
   let mockDocIndexService: Mocked<IDocIndexService>;
+  let mockFileSystemService: Mocked<IFileSystemService>;
   let docFormatterService: DocFormatterService;
 
   const DOC_A_PATH = "/path/docA.md";
+  const DOC_A_DIR = "/path";
   const FILE_B_PATH = "/path/fileB.txt";
   const INLINE_DOC_PATH = "/path/inline.md";
 
@@ -23,7 +33,26 @@ describe("DocFormatterService", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mockDocIndexService = createMockDocIndexService();
-    docFormatterService = new DocFormatterService(unwrapMock(mockDocIndexService));
+    mockFileSystemService = createMockFileSystemService();
+
+    mockFileSystemService.getDirname.mockImplementation((filePath) => {
+      if (filePath === DOC_A_PATH) return DOC_A_DIR;
+      return "/mock/dir";
+    });
+
+    mockFileSystemService.resolvePath.mockImplementation((base, rel) => {
+      if (base === DOC_A_DIR && (rel === './inline.md' || rel === './inline1.md' || rel === './inline2.md')) {
+        if (rel === './inline.md') return INLINE_DOC_PATH;
+        if (rel === './inline1.md') return '/path/inline1.md';
+        if (rel === './inline2.md') return '/path/inline2.md';
+      }
+      return `${base}/${rel.startsWith('/') ? '' : '/'}${rel.replace(/^\.\//, '')}`;
+    });
+
+    docFormatterService = new DocFormatterService(
+      unwrapMock(mockDocIndexService),
+      unwrapMock(mockFileSystemService)
+    );
   });
 
   describe("formatDoc", () => {
@@ -65,13 +94,16 @@ describe("DocFormatterService", () => {
     });
 
     it("should format a doc with an inline link", async () => {
+      const rawTarget = "./inline.md?mdr-include=true&mdr-inline=true";
       const linkToInline: DocLink = {
         filePath: INLINE_DOC_PATH,
+        rawLinkTarget: rawTarget,
         isInline: true,
         anchorText: "Inline Doc Link",
       };
+      const docContentWithLink = `${docAContent}\n[Inline Doc Link](${rawTarget})`;
       const docWithInlineLink = createMockDoc(DOC_A_PATH, {
-        content: docAContent,
+        content: docContentWithLink,
         linksTo: [linkToInline],
       });
       const item: ContextItem = { doc: docWithInlineLink, type: "auto" };
@@ -81,22 +113,28 @@ describe("DocFormatterService", () => {
       const result = await docFormatterService.formatDoc(item);
 
       expect(mockDocIndexService.getDoc).toHaveBeenCalledWith(INLINE_DOC_PATH);
+      expect(mockFileSystemService.getDirname).toHaveBeenCalledWith(DOC_A_PATH);
+      expect(mockFileSystemService.resolvePath).toHaveBeenCalledWith(DOC_A_DIR, "./inline.md");
+
       const expectedInlineTag = `<inline_doc description="Inline Doc Link" file="${INLINE_DOC_PATH}">\n${inlineDocContent}\n</inline_doc>`;
       expect(result).toBe(
-        `<doc type="auto" file="${DOC_A_PATH}">\n${docAContent}\n\n${expectedInlineTag}\n</doc>`
+        `<doc type="auto" file="${DOC_A_PATH}">\n${docAContent}\n[Inline Doc Link](${rawTarget})\n${expectedInlineTag}\n</doc>`
       );
     });
 
     it("should format a doc with an inline link with line range", async () => {
-      const range: DocLinkRange = { from: 1, to: 3 }; // Lines 2, 3, 4 (0-based index, inclusive end)
+      const range: DocLinkRange = { from: 1, to: 3 };
+      const rawTarget = "./inline.md?mdr-include=true&mdr-inline=true&mdr-lines=1-3";
       const linkToInline: DocLink = {
         filePath: INLINE_DOC_PATH,
+        rawLinkTarget: rawTarget,
         isInline: true,
         inlineLinesRange: range,
         anchorText: "Inline Section",
       };
+      const docContentWithLink = `${docAContent}\n[Inline Section](${rawTarget})`;
       const docWithInlineLink = createMockDoc(DOC_A_PATH, {
-        content: docAContent,
+        content: docContentWithLink,
         linksTo: [linkToInline],
       });
       const item: ContextItem = { doc: docWithInlineLink, type: "auto" };
@@ -106,23 +144,29 @@ describe("DocFormatterService", () => {
       const result = await docFormatterService.formatDoc(item);
 
       expect(mockDocIndexService.getDoc).toHaveBeenCalledWith(INLINE_DOC_PATH);
+      expect(mockFileSystemService.getDirname).toHaveBeenCalledWith(DOC_A_PATH);
+      expect(mockFileSystemService.resolvePath).toHaveBeenCalledWith(DOC_A_DIR, "./inline.md");
+
       const expectedRangeContent = "Line 2\nLine 3\nLine 4";
       const expectedInlineTag = `<inline_doc description="Inline Section" file="${INLINE_DOC_PATH}" lines="1-3">\n${expectedRangeContent}\n</inline_doc>`;
       expect(result).toBe(
-        `<doc type="auto" file="${DOC_A_PATH}">\n${docAContent}\n\n${expectedInlineTag}\n</doc>`
+        `<doc type="auto" file="${DOC_A_PATH}">\n${docAContent}\n[Inline Section](${rawTarget})\n${expectedInlineTag}\n</doc>`
       );
     });
 
     it("should format a doc with an inline link with line range to 'end'", async () => {
-      const range: DocLinkRange = { from: 2, to: "end" }; // Lines 3 to end
+      const range: DocLinkRange = { from: 2, to: "end" };
+      const rawTarget = "./inline.md?mdr-include=true&mdr-inline=true&mdr-lines=2-end";
       const linkToInline: DocLink = {
         filePath: INLINE_DOC_PATH,
+        rawLinkTarget: rawTarget,
         isInline: true,
         inlineLinesRange: range,
         anchorText: "Inline From Line 3",
       };
+      const docContentWithLink = `${docAContent}\n[Inline From Line 3](${rawTarget})`;
       const docWithInlineLink = createMockDoc(DOC_A_PATH, {
-        content: docAContent,
+        content: docContentWithLink,
         linksTo: [linkToInline],
       });
       const item: ContextItem = { doc: docWithInlineLink, type: "auto" };
@@ -132,21 +176,27 @@ describe("DocFormatterService", () => {
       const result = await docFormatterService.formatDoc(item);
 
       expect(mockDocIndexService.getDoc).toHaveBeenCalledWith(INLINE_DOC_PATH);
+      expect(mockFileSystemService.getDirname).toHaveBeenCalledWith(DOC_A_PATH);
+      expect(mockFileSystemService.resolvePath).toHaveBeenCalledWith(DOC_A_DIR, "./inline.md");
+
       const expectedRangeContent = "Line 3\nLine 4\nLine 5";
       const expectedInlineTag = `<inline_doc description="Inline From Line 3" file="${INLINE_DOC_PATH}" lines="2-end">\n${expectedRangeContent}\n</inline_doc>`;
       expect(result).toBe(
-        `<doc type="auto" file="${DOC_A_PATH}">\n${docAContent}\n\n${expectedInlineTag}\n</doc>`
+        `<doc type="auto" file="${DOC_A_PATH}">\n${docAContent}\n[Inline From Line 3](${rawTarget})\n${expectedInlineTag}\n</doc>`
       );
     });
 
     it("should skip inline expansion if linked doc is an error doc", async () => {
+      const rawTarget = "./inline.md?mdr-include=true&mdr-inline=true";
       const linkToInline: DocLink = {
         filePath: INLINE_DOC_PATH,
+        rawLinkTarget: rawTarget,
         isInline: true,
         anchorText: "Inline Doc Link",
       };
+      const docContentWithLink = `${docAContent}\n[Inline Doc Link](${rawTarget})`;
       const docWithInlineLink = createMockDoc(DOC_A_PATH, {
-        content: docAContent,
+        content: docContentWithLink,
         linksTo: [linkToInline],
       });
       const item: ContextItem = { doc: docWithInlineLink, type: "auto" };
@@ -160,17 +210,21 @@ describe("DocFormatterService", () => {
       const result = await docFormatterService.formatDoc(item);
 
       expect(mockDocIndexService.getDoc).toHaveBeenCalledWith(INLINE_DOC_PATH);
-      expect(result).toBe(`<doc type="auto" file="${DOC_A_PATH}">\n${docAContent}\n</doc>`); // No inline block
+      expect(mockFileSystemService.resolvePath).toHaveBeenCalledWith(DOC_A_DIR, "./inline.md");
+      expect(result).toBe(`<doc type="auto" file="${DOC_A_PATH}">\n${docContentWithLink}\n</doc>`);
     });
 
     it("should handle errors when fetching inline doc", async () => {
+      const rawTarget = "./inline.md?mdr-include=true&mdr-inline=true";
       const linkToInline: DocLink = {
         filePath: INLINE_DOC_PATH,
+        rawLinkTarget: rawTarget,
         isInline: true,
         anchorText: "Inline Doc Link",
       };
+      const docContentWithLink = `${docAContent}\n[Inline Doc Link](${rawTarget})`;
       const docWithInlineLink = createMockDoc(DOC_A_PATH, {
-        content: docAContent,
+        content: docContentWithLink,
         linksTo: [linkToInline],
       });
       const item: ContextItem = { doc: docWithInlineLink, type: "auto" };
@@ -181,27 +235,39 @@ describe("DocFormatterService", () => {
       const result = await docFormatterService.formatDoc(item);
 
       expect(mockDocIndexService.getDoc).toHaveBeenCalledWith(INLINE_DOC_PATH);
-      expect(result).toBe(`<doc type="auto" file="${DOC_A_PATH}">\n${docAContent}\n</doc>`); // No inline block
+      expect(mockFileSystemService.resolvePath).toHaveBeenCalledWith(DOC_A_DIR, "./inline.md");
+      expect(result).toBe(`<doc type="auto" file="${DOC_A_PATH}">\n${docContentWithLink}\n</doc>`);
     });
 
-    it("should format a doc with multiple inline links", async () => {
+    it("should format a doc with multiple inline links inserted correctly", async () => {
       const inlineDoc1Path = "/path/inline1.md";
       const inlineDoc2Path = "/path/inline2.md";
       const inlineDoc1Content = "Inline Content 1";
-      const inlineDoc2Content = "Inline Content 2";
+      const inlineDoc2Content = "First line C2\nSecond line C2";
       const inlineDoc1 = createMockDoc(inlineDoc1Path, { content: inlineDoc1Content });
       const inlineDoc2 = createMockDoc(inlineDoc2Path, { content: inlineDoc2Content });
 
-      const link1: DocLink = { filePath: inlineDoc1Path, isInline: true, anchorText: "Link 1" };
+      const rawTarget1 = "./inline1.md?mdr-include=true&mdr-inline=true";
+      const rawTarget2 = "./inline2.md?mdr-include=true&mdr-inline=true&mdr-lines=0-0";
+
+      const link1: DocLink = {
+        filePath: inlineDoc1Path,
+        rawLinkTarget: rawTarget1,
+        isInline: true,
+        anchorText: "Link 1",
+      };
       const link2: DocLink = {
         filePath: inlineDoc2Path,
+        rawLinkTarget: rawTarget2,
         isInline: true,
         anchorText: "Link 2",
         inlineLinesRange: { from: 0, to: 0 },
       };
 
+      const docContentWithLinks = `Some text before.\n[Link 1](${rawTarget1})\nSome text between.\n[Link 2](${rawTarget2})\nSome text after.`;
+
       const docWithLinks = createMockDoc(DOC_A_PATH, {
-        content: docAContent,
+        content: docContentWithLinks,
         linksTo: [link1, link2],
       });
       const item: ContextItem = { doc: docWithLinks, type: "auto" };
@@ -211,15 +277,24 @@ describe("DocFormatterService", () => {
         if (path === inlineDoc2Path) return inlineDoc2;
         throw new Error("Unexpected path");
       });
+      mockFileSystemService.resolvePath.mockImplementation((base, rel) => {
+        if (rel === "./inline1.md") return inlineDoc1Path;
+        if (rel === "./inline2.md") return inlineDoc2Path;
+        return `${base}/${rel}`;
+      });
 
       const result = await docFormatterService.formatDoc(item);
 
       const expectedInlineTag1 = `<inline_doc description="Link 1" file="${inlineDoc1Path}">\n${inlineDoc1Content}\n</inline_doc>`;
-      // Range 0-0 should extract line 1 (index 0)
       const expectedInlineTag2 = `<inline_doc description="Link 2" file="${inlineDoc2Path}" lines="0-0">\n${inlineDoc2Content.split("\n")[0]}\n</inline_doc>`;
+
+      const expectedFinalContent = `Some text before.\n[Link 1](${rawTarget1})\n${expectedInlineTag1}\nSome text between.\n[Link 2](${rawTarget2})\n${expectedInlineTag2}\nSome text after.`;
+
       expect(result).toBe(
-        `<doc type="auto" file="${DOC_A_PATH}">\n${docAContent}\n\n${expectedInlineTag1}\n\n${expectedInlineTag2}\n</doc>`
+        `<doc type="auto" file="${DOC_A_PATH}">\n${expectedFinalContent}\n</doc>`
       );
+      expect(mockFileSystemService.resolvePath).toHaveBeenCalledWith(DOC_A_DIR, "./inline1.md");
+      expect(mockFileSystemService.resolvePath).toHaveBeenCalledWith(DOC_A_DIR, "./inline2.md");
     });
   });
 

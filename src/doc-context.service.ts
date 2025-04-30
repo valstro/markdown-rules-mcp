@@ -14,7 +14,8 @@ const typePriority: Record<AttachedItemType, number> = {
   always: 0,
   auto: 1,
   agent: 2,
-  related: 3,
+  manual: 3,
+  related: 4,
 };
 
 export class DocContextService implements IDocContextService {
@@ -41,20 +42,24 @@ export class DocContextService implements IDocContextService {
     }
 
     const contextItemsMap = new Map<string, ContextItem>();
-
     const initialPaths = new Set<string>();
+
+    // Pre-compute a set of attached file paths for efficient lookup
+    const attachedFilesSet = new Set(attachedFiles);
 
     for (const doc of allDocsMap.values()) {
       if (doc.isError) continue;
 
       let currentType: AttachedItemType | null = null;
-      let currentPriority = Infinity;
+      let currentPriority = Infinity; // Initialize with a high value, lower is better priority
 
+      // Highest priority: Always apply
       if (doc.meta.alwaysApply) {
         currentType = "always";
         currentPriority = typePriority.always;
       }
 
+      // Next priority: Auto glob match
       if (currentPriority > typePriority.auto) {
         if (doc.meta.globs && doc.meta.globs.length > 0) {
           const isMatch = attachedFiles.some((attachedFile) => {
@@ -70,6 +75,7 @@ export class DocContextService implements IDocContextService {
         }
       }
 
+      // Next priority: Agent description match
       if (currentPriority > typePriority.agent) {
         if (relevantDocsByDescription.includes(doc.filePath)) {
           currentType = "agent";
@@ -77,8 +83,18 @@ export class DocContextService implements IDocContextService {
         }
       }
 
+      // Lowest explicit priority: Manual attachment
+      if (currentPriority > typePriority.manual && attachedFilesSet.has(doc.filePath)) {
+        currentType = "manual";
+      }
+
+      // If any type was assigned, add the doc to the context
       if (currentType) {
-        contextItemsMap.set(doc.filePath, { doc, type: currentType });
+        // Check if it already exists and update type only if the new type has strictly *higher* priority (lower number)
+        const existingItem = contextItemsMap.get(doc.filePath);
+        if (!existingItem || typePriority[currentType] < typePriority[existingItem.type]) {
+          contextItemsMap.set(doc.filePath, { doc, type: currentType });
+        }
         initialPaths.add(doc.filePath);
       }
     }
@@ -88,11 +104,11 @@ export class DocContextService implements IDocContextService {
     );
 
     const queue = Array.from(initialPaths);
-    const visited = new Set<string>(initialPaths);
+    const visited = new Set<string>(initialPaths); // Keep track of visited to avoid cycles and redundant work
 
     while (queue.length > 0) {
       const currentPath = queue.shift()!;
-      const currentItem = contextItemsMap.get(currentPath);
+      const currentItem = contextItemsMap.get(currentPath); // Should always exist here
 
       if (!currentItem || !currentItem.doc || currentItem.doc.isError) continue;
 
@@ -110,26 +126,37 @@ export class DocContextService implements IDocContextService {
           continue;
         }
 
+        // Only add related docs if they haven't been added through any other mechanism yet.
+        // Store the path of the item that introduced this related link.
         if (!contextItemsMap.has(link.filePath)) {
           contextItemsMap.set(link.filePath, {
             doc: linkedDoc,
             type: "related",
             linkedViaAnchor: link.anchorText,
+            linkedFromPath: currentPath, // Store the path of the item linking to it
           });
-          visited.add(link.filePath);
-          queue.push(link.filePath);
+          // Add to visited *and* queue only if it wasn't visited before adding it now.
+          if (!visited.has(link.filePath)) {
+            visited.add(link.filePath);
+            queue.push(link.filePath);
+            logger.debug(
+              `Added related doc: ${link.filePath} (linked from ${currentPath} via "${link.anchorText}")`
+            );
+          }
+        } else {
+          // Log if a doc was already included via a different mechanism
           logger.debug(
-            `Added related doc: ${link.filePath} (linked from ${currentPath} with anchor "${link.anchorText}")`
+            `Skipping adding ${link.filePath} as related from ${currentPath} as it's already included with type ${contextItemsMap.get(link.filePath)?.type}`
           );
         }
       }
     }
 
-    logger.info(`Total context items after traversal: ${contextItemsMap.size}`);
+    logger.info(`Total context items before sorting: ${contextItemsMap.size}`);
 
     let finalItems = Array.from(contextItemsMap.values());
 
-    finalItems = this.sortItems(finalItems, typePriority);
+    finalItems = this.sortItems(finalItems);
 
     return finalItems;
   }
@@ -148,109 +175,125 @@ export class DocContextService implements IDocContextService {
     return this.docFormatterService.formatContextOutput(contextItems);
   }
 
-  private sortItems(
-    items: ContextItem[],
-    typePriority: Record<AttachedItemType, number>
-  ): ContextItem[] {
-    const sortedPaths = this.topologicalSort(items);
+  private sortItems(items: ContextItem[]): ContextItem[] {
+    // TODO: Get HOIST_CONTEXT from config. Assuming false for now.
+    // Replace with: const hoistContext = this.config.HOIST_CONTEXT;
+    const hoistContext = this.config.HOIST_CONTEXT ?? false; // Default to false if undefined
 
-    const itemMap = new Map(items.map((item) => [item.doc.filePath, item]));
+    const relatedItems = items.filter((item) => item.type === "related");
+    const nonRelatedItems = items.filter((item) => item.type !== "related");
 
-    const sortedItems = sortedPaths
-      .map((path) => itemMap.get(path))
-      .filter((item) => item !== undefined) as ContextItem[];
+    // 1. Sort non-related items by type priority then path
+    nonRelatedItems.sort((a, b) => {
+      const priorityDiff = typePriority[a.type] - typePriority[b.type];
+      if (priorityDiff !== 0) {
+        return priorityDiff;
+      }
+      return a.doc.filePath.localeCompare(b.doc.filePath);
+    });
 
-    logger.debug(
-      `Sorted context paths (topo order: ${this.config.CONTEXT_SORT_ORDER}) (${sortedItems.length}): ${sortedItems.map((i) => `${i.doc.filePath} (${i.type})`).join(", ")}`
-    );
+    // 2. Group related items by the path of the item that linked to them
+    const relatedByLinker = new Map<string, ContextItem[]>();
+    const orphanRelatedItems: ContextItem[] = []; // Items whose linker isn't in nonRelatedItems
 
-    return sortedItems;
-  }
-
-  private topologicalSort(items: ContextItem[]): string[] {
-    const sorted: string[] = []; // Will hold the reverse topological order initially
-    const visiting = new Set<string>(); // Nodes currently in the recursion stack (for cycle detection)
-    const finished = new Set<string>(); // Nodes completely visited
-    const adj = new Map<string, string[]>(); // Adjacency list (A -> B means A links to/depends on B)
-    const itemPaths = new Set(items.map((item) => item.doc.filePath));
-
-    // Build the adjacency list
-    for (const item of items) {
-      const sourcePath = item.doc.filePath;
-      if (!adj.has(sourcePath)) adj.set(sourcePath, []);
-
-      for (const link of item.doc.linksTo) {
-        if (link.isInline) continue;
-
-        const targetPath = link.filePath;
-        // Only consider links to other items within the current context set
-        if (itemPaths.has(targetPath)) {
-          adj.get(sourcePath)!.push(targetPath); // Add edge from source to target (dependency)
+    for (const item of relatedItems) {
+      const linkerPath = item.linkedFromPath;
+      if (linkerPath && items.some((i) => i.doc.filePath === linkerPath && i.type !== "related")) {
+        // Check if linker exists and is non-related
+        if (!relatedByLinker.has(linkerPath)) {
+          relatedByLinker.set(linkerPath, []);
         }
-      }
-    }
-
-    const visit = (node: string) => {
-      if (finished.has(node)) return; // Already visited and finished
-      if (visiting.has(node)) {
-        // Cycle detected
-        logger.warn(`Cycle detected involving node: ${node}. Topological sort might be affected.`);
-        // We don't add it to sorted here, let the main loop handle it if needed
-        return;
-      }
-
-      visiting.add(node);
-
-      const neighbors = adj.get(node) || [];
-      for (const neighbor of neighbors) {
-        // Ensure the neighbor is part of the items we are sorting
-        if (itemPaths.has(neighbor)) {
-          visit(neighbor);
-        }
-      }
-
-      visiting.delete(node); // Remove from current recursion stack
-      finished.add(node); // Mark as completely visited
-      sorted.push(node); // Add to the list *after* visiting all dependencies (post-order)
-    };
-
-    // Sort initial nodes alphabetically for deterministic starting order
-    const initialNodes = items.map((item) => item.doc.filePath).sort();
-
-    for (const itemPath of initialNodes) {
-      if (!finished.has(itemPath)) {
-        visit(itemPath);
-      }
-    }
-
-    // At this point, `sorted` contains the reverse topological order.
-    // Dependencies appear *before* the items that depend on them.
-
-    // Check for missed nodes (can happen with cycles or disconnected components not reachable from initial triggers)
-    // This existing check seems reasonable to keep.
-    if (items.length > sorted.length) {
-      const missing = items
-        .map((i) => i.doc.filePath)
-        .filter((p) => !sorted.includes(p))
-        .sort();
-      if (missing.length > 0) {
+        relatedByLinker.get(linkerPath)!.push(item);
+      } else {
+        // This might happen if a related item was linked from another related item,
+        // or if the linking item itself wasn't included for some reason.
         logger.warn(
-          `Adding ${missing.length} nodes potentially missed (e.g., due to cycles or being unlinked roots): ${missing.join(", ")}`
+          `Related item ${item.doc.filePath} has missing or non-primary linker path: ${linkerPath}. Treating as orphan.`
         );
-        // Add missing nodes. Their exact order relative to others might be arbitrary
-        // if they were part of cycles or disconnected, but they need to be included.
-        // Appending them maintains the relative order of the successfully sorted portion.
-        sorted.push(...missing);
+        orphanRelatedItems.push(item);
       }
     }
 
-    // Reverse the list only if reverse-topological sort is required (item before dependencies)
-    if (this.config.CONTEXT_SORT_ORDER === "reverse-topological") {
-      // logger.debug("Reversing list for reverse-topological order.");
-      return sorted.reverse();
-    } else {
-      // logger.debug("Using natural post-order for topological (dependencies first).");
-      return sorted; // Return natural post-order for topological (dependencies first)
+    // 3. Sort related items within each group alphabetically by path
+    for (const relatedGroup of relatedByLinker.values()) {
+      relatedGroup.sort((a, b) => a.doc.filePath.localeCompare(b.doc.filePath));
     }
+    // Sort orphan items as well
+    orphanRelatedItems.sort((a, b) => a.doc.filePath.localeCompare(b.doc.filePath));
+
+    // 4. Construct the final list, placing related items relative to their linker
+    const finalSortedItems: ContextItem[] = [];
+    const addedRelated = new Set<string>(); // Keep track of related items already added
+
+    for (const nonRelatedItem of nonRelatedItems) {
+      const linkerPath = nonRelatedItem.doc.filePath;
+      const relatedGroup = relatedByLinker.get(linkerPath) ?? [];
+      const itemsToPlace = relatedGroup.filter((item) => !addedRelated.has(item.doc.filePath));
+
+      if (itemsToPlace.length > 0) {
+        if (hoistContext) {
+          finalSortedItems.push(...itemsToPlace);
+          itemsToPlace.forEach((item) => addedRelated.add(item.doc.filePath));
+        }
+      }
+
+      finalSortedItems.push(nonRelatedItem); // Add the non-related item
+
+      if (itemsToPlace.length > 0) {
+        if (!hoistContext) {
+          finalSortedItems.push(...itemsToPlace);
+          itemsToPlace.forEach((item) => addedRelated.add(item.doc.filePath));
+        }
+      }
+    }
+
+    // 5. Append any orphan related items at the end
+    if (orphanRelatedItems.length > 0) {
+      logger.warn(`Appending ${orphanRelatedItems.length} orphan related items to the end.`);
+      finalSortedItems.push(...orphanRelatedItems);
+      orphanRelatedItems.forEach((item) => addedRelated.add(item.doc.filePath)); // Mark as added
+    }
+
+    // 6. Sanity check: Ensure all original items are present
+    if (finalSortedItems.length !== items.length) {
+      logger.error(
+        `Sorting resulted in item count mismatch! Original: ${items.length}, Sorted: ${finalSortedItems.length}. Dumping details.`
+      );
+      // Add more detailed logging if necessary
+      const originalPaths = new Set(items.map((i) => i.doc.filePath));
+      const finalPaths = new Set(finalSortedItems.map((i) => i.doc.filePath));
+      items.forEach((item) => {
+        if (!finalPaths.has(item.doc.filePath)) {
+          logger.error(
+            `Missing item after sort: ${item.doc.filePath} (type: ${item.type}, linkedFrom: ${item.linkedFromPath})`
+          );
+        }
+      });
+      finalSortedItems.forEach((item) => {
+        if (!originalPaths.has(item.doc.filePath)) {
+          logger.error(
+            `Extra item after sort: ${item.doc.filePath} (type: ${item.type}, linkedFrom: ${item.linkedFromPath})`
+          );
+        }
+      });
+      // As a fallback, return the original unsorted list if counts don't match
+      // return items; // Or throw an error
+    }
+
+    // Check if any related items were somehow missed (e.g., linked from a related item not handled as orphan)
+    const allAddedRelatedCount =
+      Array.from(relatedByLinker.values()).flat().length + orphanRelatedItems.length;
+    if (relatedItems.length !== allAddedRelatedCount) {
+      const missedRelated = relatedItems.filter((item) => !addedRelated.has(item.doc.filePath));
+      if (missedRelated.length > 0) {
+        logger.warn(
+          `Found ${missedRelated.length} related items that were not placed. Appending them now.`
+        );
+        missedRelated.sort((a, b) => a.doc.filePath.localeCompare(b.doc.filePath));
+        finalSortedItems.push(...missedRelated);
+      }
+    }
+
+    return finalSortedItems;
   }
 }

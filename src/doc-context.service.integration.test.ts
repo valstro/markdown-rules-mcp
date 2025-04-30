@@ -10,6 +10,7 @@ import { FileSystemService } from "./file-system.service.js";
 import { DocFormatterService } from "./doc-formatter.service.js";
 import { Config } from "./config.js";
 import { IDocIndexService } from "./types.js"; // Import necessary types if needed later
+import { createConfigMock } from "./config.mock.js";
 
 describe("DocContextService Integration Tests", () => {
   let tempDir: string;
@@ -26,6 +27,7 @@ describe("DocContextService Integration Tests", () => {
   const autoTsDocPathRel = "auto-ts.md";
   const agentDocPathRel = "agent-trigger.md";
   const relatedDocPathRel = "related.md";
+  const relatedDoc2PathRel = "related2.md";
   const inlineTargetDocPathRel = "inline-target.md";
   const mainTsPathRel = "src/main.ts";
   const unrelatedDocPathRel = "unrelated.md";
@@ -38,12 +40,16 @@ describe("DocContextService Integration Tests", () => {
   let autoTsDocPathAbs: string;
   let agentDocPathAbs: string;
   let relatedDocPathAbs: string;
+  let relatedDoc2PathAbs: string;
   let inlineTargetDocPathAbs: string;
   let mainTsPathAbs: string;
   let unrelatedDocPathAbs: string;
   let cycleADocPathAbs: string;
   let cycleBDocPathAbs: string;
   let configFileAbs: string;
+
+  // --- Setup ---
+  let setup: (config?: Partial<Config>) => Promise<void>;
 
   beforeAll(async () => {
     // Create a unique temporary directory for this test suite
@@ -54,6 +60,7 @@ describe("DocContextService Integration Tests", () => {
     autoTsDocPathAbs = path.join(tempDir, autoTsDocPathRel);
     agentDocPathAbs = path.join(tempDir, agentDocPathRel);
     relatedDocPathAbs = path.join(tempDir, relatedDocPathRel);
+    relatedDoc2PathAbs = path.join(tempDir, relatedDoc2PathRel);
     inlineTargetDocPathAbs = path.join(tempDir, inlineTargetDocPathRel);
     mainTsPathAbs = path.join(tempDir, mainTsPathRel);
     unrelatedDocPathAbs = path.join(tempDir, unrelatedDocPathRel);
@@ -90,7 +97,9 @@ It has an inline link: [Inline Target Section](./inline-target.md?mdr-include=tr
       `---
 description: Agent Triggered Doc
 ---
-This doc is triggered by the agent description match.`
+This doc is triggered by the agent description match.
+
+and is related to [Related Doc 2](./related2.md?mdr-include=true).`
     );
 
     await fs.writeFile(
@@ -99,6 +108,14 @@ This doc is triggered by the agent description match.`
 description: Related Doc
 ---
 This doc is linked from the 'always' doc.`
+    );
+
+    await fs.writeFile(
+      relatedDoc2PathAbs,
+      `---
+description: Related Doc 2
+---
+This doc is related to various things.`
     );
 
     await fs.writeFile(
@@ -146,28 +163,31 @@ Links back to [Cycle A](./cycle-a.md?mdr-include=true)`
   });
 
   beforeEach(async () => {
-    // Reset config and services for each test
-    mockConfig = {
+    mockConfig = createConfigMock({
       PROJECT_ROOT: tempDir,
-      MARKDOWN_GLOB_PATTERN: "**/*.md", // Include all markdown files in tempDir
       LOG_LEVEL: "error", // Keep logs quiet during tests unless debugging
-      CONTEXT_SORT_ORDER: "topological", // An item appears after all its dependencies have appeared
-    };
-
+    });
     fileSystemService = new FileSystemService(mockConfig);
     docParserService = new DocParserService();
     linkExtractorService = new LinkExtractorService(fileSystemService);
-    docIndexService = new DocIndexService(
-      mockConfig,
-      fileSystemService,
-      docParserService,
-      linkExtractorService
-    );
-    docFormatterService = new DocFormatterService(docIndexService);
-    docContextService = new DocContextService(mockConfig, docIndexService, docFormatterService);
 
-    // Build the index before each test based on files created in beforeAll
-    await docIndexService.buildIndex();
+    setup = async (config: Partial<Config> = {}) => {
+      mockConfig = { ...mockConfig, ...config };
+      const currentFileSystemService = new FileSystemService(mockConfig);
+      linkExtractorService = new LinkExtractorService(currentFileSystemService);
+
+      docIndexService = new DocIndexService(
+        mockConfig,
+        currentFileSystemService,
+        docParserService,
+        linkExtractorService
+      );
+      docFormatterService = new DocFormatterService(docIndexService, currentFileSystemService);
+      docContextService = new DocContextService(mockConfig, docIndexService, docFormatterService);
+      await docIndexService.buildIndex();
+    };
+
+    await setup();
   });
 
   it("should include 'always' and 'related' docs with empty input", async () => {
@@ -180,7 +200,7 @@ This doc is linked from the 'always' doc.
 This doc is always present.
 It links to [Related Doc](./related.md?mdr-include=true).
 </doc>`;
-    expect(output.replace(/\r\n/g, "\n")).toBe(expectedOutput.replace(/\r\n/g, "\n"));
+    expect(nl(output)).toBe(nl(expectedOutput));
   });
 
   it("should include 'auto' doc when attached file matches glob", async () => {
@@ -198,15 +218,14 @@ It links to [Related Doc](./related.md?mdr-include=true).
 <doc description="Auto TS Inclusion" type="auto" file="${autoTsDocPathAbs}">
 This doc applies to TypeScript files.
 It has an inline link: [Inline Target Section](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=1-2)
-
 <inline_doc description="Inline Target Section" file="${inlineTargetDocPathAbs}" lines="1-2">
 ${expectedInlineContent}
 </inline_doc>
 </doc>`;
-    expect(output.replace(/\r\n/g, "\n")).toBe(expectedOutput.replace(/\r\n/g, "\n"));
+    expect(nl(output)).toBe(nl(expectedOutput));
   });
 
-  it("should include 'agent' doc when its path is provided", async () => {
+  it("should include 'agent' doc  & its related doc when its path is provided", async () => {
     const output = await docContextService.buildContextOutput([], [agentDocPathAbs]);
     const expectedOutput = `<doc description="Related Doc" type="related" file="${relatedDocPathAbs}">
 This doc is linked from the 'always' doc.
@@ -217,10 +236,15 @@ This doc is always present.
 It links to [Related Doc](./related.md?mdr-include=true).
 </doc>
 
+<doc description="Related Doc 2" type="related" file="${relatedDoc2PathAbs}">
+This doc is related to various things.
+</doc>
+
 <doc description="Agent Triggered Doc" type="agent" file="${agentDocPathAbs}">
 This doc is triggered by the agent description match.
+and is related to [Related Doc 2](./related2.md?mdr-include=true).
 </doc>`;
-    expect(output.replace(/\r\n/g, "\n")).toBe(expectedOutput.replace(/\r\n/g, "\n"));
+    expect(nl(output)).toBe(nl(expectedOutput));
   });
 
   it("should handle cycles gracefully", async () => {
@@ -229,19 +253,19 @@ This doc is triggered by the agent description match.
 This doc is linked from the 'always' doc.
 </doc>
 
-    <doc description="Always Included" type="always" file="${alwaysDocPathAbs}">
+<doc description="Always Included" type="always" file="${alwaysDocPathAbs}">
 This doc is always present.
 It links to [Related Doc](./related.md?mdr-include=true).
 </doc>
 
-<doc description="Cycle A" type="agent" file="${cycleADocPathAbs}">
-Links to [Cycle B](./cycle-b.md?mdr-include=true)
-</doc>
-
 <doc description="Cycle B" type="related" file="${cycleBDocPathAbs}">
 Links back to [Cycle A](./cycle-a.md?mdr-include=true)
+</doc>
+
+<doc description="Cycle A" type="agent" file="${cycleADocPathAbs}">
+Links to [Cycle B](./cycle-b.md?mdr-include=true)
 </doc>`;
-    expect(output.replace(/\r\n/g, "\n")).toBe(expectedOutput.replace(/\r\n/g, "\n"));
+    expect(nl(output)).toBe(nl(expectedOutput));
   });
 
   it("should include non-markdown files linked via include=true as <file>", async () => {
@@ -264,7 +288,7 @@ It links to [Config File](./config.json?mdr-include=true).`;
 This doc is always present.
 It links to [Config File](./config.json?mdr-include=true).
 </doc>`;
-    expect(output.replace(/\r\n/g, "\n")).toBe(expectedOutput.replace(/\r\n/g, "\n"));
+    expect(nl(output)).toBe(nl(expectedOutput));
 
     // Restore original always doc content for other tests (or use afterEach)
     await fs.writeFile(
@@ -289,7 +313,7 @@ It links to [Related Doc](./related.md?mdr-include=true).`
       docParserService, // Can reuse parser/extractor
       linkExtractorService
     );
-    const emptyFormatter = new DocFormatterService(emptyIndex);
+    const emptyFormatter = new DocFormatterService(emptyIndex, emptyFs);
     const emptyContext = new DocContextService(emptyConfig, emptyIndex, emptyFormatter);
 
     await emptyIndex.buildIndex(); // Build index on empty dir
@@ -299,7 +323,7 @@ It links to [Related Doc](./related.md?mdr-include=true).`
     await fs.rm(emptyTempDir, { recursive: true, force: true }); // Clean up empty dir
   });
 
-  it("should sort reverse topologically when configured", async () => {
+  it("should sort NOT hoist context when configured", async () => {
     // Create specific files for this test to ensure clear dependency
     const preAPathRel = "pre-a.md";
     const preBPathRel = "pre-b.md";
@@ -321,18 +345,7 @@ description: Pre B (Related)
 This is related to Pre A.`
     );
 
-    // Configure pre-order sorting
-    mockConfig.CONTEXT_SORT_ORDER = "reverse-topological";
-    // Re-create services that depend on config's sort order
-    docIndexService = new DocIndexService( // Need to re-index with potentially different internal needs if index used config
-      mockConfig,
-      fileSystemService,
-      docParserService,
-      linkExtractorService
-    );
-    await docIndexService.buildIndex(); // Re-index with the new files
-    docFormatterService = new DocFormatterService(docIndexService); // Formatter needs up-to-date index
-    docContextService = new DocContextService(mockConfig, docIndexService, docFormatterService); // Context service uses the config directly for sorting
+    await setup({ HOIST_CONTEXT: false });
 
     const output = await docContextService.buildContextOutput([], [preAPathAbs]);
 
@@ -353,7 +366,7 @@ Links to [Pre B](./pre-b.md?mdr-include=true)
 This is related to Pre A.
 </doc>`;
 
-    expect(output.replace(/\r\n/g, "\n")).toBe(expectedOutput.replace(/\r\n/g, "\n"));
+    expect(nl(output)).toBe(nl(expectedOutput));
 
     // Clean up specific files for this test
     await fs.unlink(preAPathAbs);
@@ -392,27 +405,23 @@ It links to [Related Doc](./related.md?mdr-include=true).
 <doc description="Auto TS Inclusion Extended Ranges" type="auto" file="${autoTsDocPathAbs}">
 This doc applies to TypeScript files.
 Range 1-2: [Inline 1-2](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=1-2)
-Range 0-1: [Inline 0-1](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=-1)
-Range 2-end: [Inline 2-end](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=2-)
-Single Line 3: [Inline 3-3](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=3-3)
-
 <inline_doc description="Inline 1-2" file="${inlineTargetDocPathAbs}" lines="1-2">
 ${expectedInline_1_2}
 </inline_doc>
-
+Range 0-1: [Inline 0-1](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=-1)
 <inline_doc description="Inline 0-1" file="${inlineTargetDocPathAbs}" lines="0-1">
 ${expectedInline_0_1}
 </inline_doc>
-
+Range 2-end: [Inline 2-end](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=2-)
 <inline_doc description="Inline 2-end" file="${inlineTargetDocPathAbs}" lines="2-end">
 ${expectedInline_2_end}
 </inline_doc>
-
+Single Line 3: [Inline 3-3](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=3-3)
 <inline_doc description="Inline 3-3" file="${inlineTargetDocPathAbs}" lines="3-3">
 ${expectedInline_3_3}
 </inline_doc>
 </doc>`;
-    expect(output.replace(/\r\n/g, "\n")).toBe(expectedOutput.replace(/\r\n/g, "\n"));
+    expect(nl(output)).toBe(nl(expectedOutput));
 
     // Restore original auto-ts doc
     await fs.writeFile(
@@ -458,7 +467,6 @@ It links to [Related Doc](./related.md?mdr-include=true).
 <doc description="Auto TS Inclusion" type="auto" file="${autoTsDocPathAbs}">
 This doc applies to TypeScript files.
 It has an inline link: [Inline Target Section](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=1-2)
-
 <inline_doc description="Inline Target Section" file="${inlineTargetDocPathAbs}" lines="1-2">
 Line 1
 Line 2
@@ -468,7 +476,7 @@ Line 2
 <doc description="Multi Glob Test" type="auto" file="${multiGlobDocAbs}">
 This should apply to TS and JS files.
 </doc>`;
-    expect(output.replace(/\r\n/g, "\n")).toBe(expectedOutput.replace(/\r\n/g, "\n"));
+    expect(nl(output)).toBe(nl(expectedOutput));
     // Verify the multi-glob doc appears only once
     const multiGlobCount = (output.match(new RegExp(multiGlobDocAbs, "g")) || []).length;
     expect(multiGlobCount).toBe(1);
@@ -498,7 +506,7 @@ This matches JSON glob and could be agent-triggered.`
     const expectedOutput = `<doc description="Related Doc" type="related" file="${relatedDocPathAbs}">
 This doc is linked from the 'always' doc.
 </doc>
-    
+
 <doc description="Always Included" type="always" file="${alwaysDocPathAbs}">
 This doc is always present.
 It links to [Related Doc](./related.md?mdr-include=true).
@@ -507,9 +515,16 @@ It links to [Related Doc](./related.md?mdr-include=true).
 <doc description="Auto Agent Doc" type="auto" file="${autoAgentDocAbs}">
 This matches JSON glob and could be agent-triggered.
 </doc>`;
-    expect(output.replace(/\r\n/g, "\n")).toBe(expectedOutput.replace(/\r\n/g, "\n"));
+    expect(nl(output)).toBe(nl(expectedOutput));
 
     // Clean up specific file
     await fs.unlink(autoAgentDocAbs);
   });
 });
+
+/**
+ * Normalize line endings to Unix style
+ */
+function nl(str: string) {
+  return str.replace(/\r\n/g, "\n");
+}

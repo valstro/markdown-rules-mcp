@@ -56,6 +56,7 @@ export class LinkExtractorService implements ILinkExtractorService {
 
           linkedDocs.push({
             filePath: absolutePath,
+            rawLinkTarget: linkTarget,
             isInline,
             inlineLinesRange,
             anchorText,

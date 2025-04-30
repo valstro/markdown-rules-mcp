@@ -12,6 +12,7 @@ export interface DocLinkRange {
 export interface DocLink {
   anchorText: string;
   filePath: string;
+  rawLinkTarget: string;
   isInline: boolean;
   inlineLinesRange?: DocLinkRange;
 }
@@ -61,7 +62,7 @@ export interface IDocIndexService {
 }
 
 export type AttachedItemFileType = "doc" | "file";
-export type AttachedItemType = "auto" | "agent" | "always" | "related";
+export type AttachedItemType = "auto" | "agent" | "always" | "related" | "manual";
 export interface AttachedItem {
   filePath: string;
   description?: string;
@@ -74,6 +75,7 @@ export interface ContextItem {
   doc: Doc;
   type: AttachedItemType;
   linkedViaAnchor?: string;
+  linkedFromPath?: string; // Path of the item that first linked to this one (if type is 'related')
 }
 
 export interface IDocContextService {

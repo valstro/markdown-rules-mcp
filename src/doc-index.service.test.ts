@@ -14,6 +14,7 @@ import { createMockDoc } from "./doc-index.service.mock.js";
 import { createMockFileSystemService } from "./file-system.service.mock.js";
 import { createMockDocParserService } from "./doc-parser.service.mock.js";
 import { createMockLinkExtractorService } from "./link-extractor.service.mock.js";
+import { createConfigMock } from "./config.mock.js";
 
 vi.mock("./file-system.service.js");
 vi.mock("./doc-parser.service.js");
@@ -38,12 +39,7 @@ describe("DocIndexService", () => {
     mockFileSystemService = createMockFileSystemService();
     mockDocParserService = createMockDocParserService();
     mockLinkExtractorService = createMockLinkExtractorService();
-    mockConfig = {
-      PROJECT_ROOT: "/project",
-      MARKDOWN_GLOB_PATTERN: "**/*.md",
-      LOG_LEVEL: "error",
-      CONTEXT_SORT_ORDER: "topological",
-    };
+    mockConfig = createConfigMock({});
 
     // Default implementations that can be overridden in specific tests
     mockFileSystemService.resolvePath.mockImplementation((base, relative) => {
@@ -108,8 +104,18 @@ describe("DocIndexService", () => {
     const docA = createMockDoc(FILE_A, { content: docAContent });
     const docB = createMockDoc(FILE_B, { content: docBContent });
     const docC = createMockDoc(FILE_C, { content: docCContent });
-    const linkToB: DocLink = { filePath: FILE_B, isInline: false, anchorText: "Link to B" };
-    const linkToC: DocLink = { filePath: FILE_C, isInline: false, anchorText: "Link to C" };
+    const linkToB: DocLink = {
+      filePath: FILE_B,
+      isInline: false,
+      anchorText: "Link to B",
+      rawLinkTarget: "./subdir/docB.md?mdr-include=true",
+    };
+    const linkToC: DocLink = {
+      filePath: FILE_C,
+      isInline: false,
+      anchorText: "Link to C",
+      rawLinkTarget: "./docC.md?mdr-include=true",
+    };
 
     mockFileSystemService.findFiles.mockResolvedValue([FILE_A]); // Start discovery with A
     mockFileSystemService.readFile.mockImplementation(async (path) => {
@@ -180,7 +186,12 @@ describe("DocIndexService", () => {
     const docBContent = "# Doc B";
     const docA = createMockDoc(FILE_A, { content: docAContent });
     const docB = createMockDoc(FILE_B, { content: docBContent });
-    const linkToB: DocLink = { filePath: FILE_B, isInline: false, anchorText: "Link to B" };
+    const linkToB: DocLink = {
+      filePath: FILE_B,
+      isInline: false,
+      anchorText: "Link to B",
+      rawLinkTarget: "./docB.md?mdr-include=true",
+    };
 
     mockFileSystemService.findFiles.mockResolvedValue([FILE_A]);
     mockFileSystemService.readFile.mockImplementation(async (path) => {
@@ -224,8 +235,18 @@ describe("DocIndexService", () => {
     const docBContent = "# Doc B\n[Link to A](./docA.md?mdr-include=true)";
     const docA = createMockDoc(FILE_A, { content: docAContent });
     const docB = createMockDoc(FILE_B, { content: docBContent });
-    const linkToB: DocLink = { filePath: FILE_B, isInline: false, anchorText: "Link to B" };
-    const linkToA: DocLink = { filePath: FILE_A, isInline: false, anchorText: "Link to A" };
+    const linkToB: DocLink = {
+      filePath: FILE_B,
+      isInline: false,
+      anchorText: "Link to B",
+      rawLinkTarget: "./docB.md?mdr-include=true",
+    };
+    const linkToA: DocLink = {
+      filePath: FILE_A,
+      isInline: false,
+      anchorText: "Link to A",
+      rawLinkTarget: "./docA.md?mdr-include=true",
+    };
 
     mockFileSystemService.findFiles.mockResolvedValue([FILE_A]); // Start with A
     mockFileSystemService.readFile.mockImplementation(async (path) => {
@@ -262,7 +283,12 @@ describe("DocIndexService", () => {
     const jsonContent = JSON.stringify({ key: "value" });
     const docA = createMockDoc(FILE_A, { content: docAContent });
     const jsonDoc = createMockDoc(FILE_JSON, { content: jsonContent, isMarkdown: false });
-    const linkToJson: DocLink = { filePath: FILE_JSON, isInline: false, anchorText: "Config" };
+    const linkToJson: DocLink = {
+      filePath: FILE_JSON,
+      isInline: false,
+      anchorText: "Config",
+      rawLinkTarget: "./config.json?mdr-include=true",
+    };
 
     mockFileSystemService.findFiles.mockResolvedValue([FILE_A]);
     mockFileSystemService.readFile.mockImplementation(async (path) => {
@@ -392,8 +418,18 @@ describe("DocIndexService", () => {
     const docA = createMockDoc(FILE_A, { content: docAContent });
     const docB = createMockDoc(FILE_B, { content: docBContent });
     const docC = createMockDoc(FILE_C, { content: docCContent });
-    const linkToBFromA: DocLink = { filePath: FILE_B, isInline: false, anchorText: "Link to B" };
-    const linkToBFromC: DocLink = { filePath: FILE_B, isInline: false, anchorText: "Link to B" };
+    const linkToBFromA: DocLink = {
+      filePath: FILE_B,
+      isInline: false,
+      anchorText: "Link to B",
+      rawLinkTarget: "./docB.md?mdr-include=true",
+    };
+    const linkToBFromC: DocLink = {
+      filePath: FILE_B,
+      isInline: false,
+      anchorText: "Link to B",
+      rawLinkTarget: "./docB.md?mdr-include=true",
+    };
 
     mockFileSystemService.findFiles.mockResolvedValue([FILE_A, FILE_C]); // Start with A and C
     mockFileSystemService.readFile.mockImplementation(async (path) => {

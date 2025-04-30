@@ -39,6 +39,7 @@ describe("LinkExtractorService", () => {
     const expectedDocLinks: DocLink[] = [
       {
         filePath: expectedAbsolutePath,
+        rawLinkTarget: "./relative/link.md?mdr-include=true",
         isInline: false,
         inlineLinesRange: undefined,
         anchorText: "link text",
@@ -58,6 +59,7 @@ describe("LinkExtractorService", () => {
     const expectedDocLinks: DocLink[] = [
       {
         filePath: expectedAbsolutePath,
+        rawLinkTarget: "./relative/link.md?mdr-include=1",
         isInline: false,
         inlineLinesRange: undefined,
         anchorText: "link text",
@@ -90,18 +92,21 @@ describe("LinkExtractorService", () => {
     const expectedDocLinks: DocLink[] = [
       {
         filePath: expectedAbsolutePath1,
+        rawLinkTarget: "../link1.md?mdr-include=true",
         isInline: false,
         inlineLinesRange: undefined,
         anchorText: "link1",
       },
       {
         filePath: expectedAbsolutePath2,
+        rawLinkTarget: "./folder/link2.md?mdr-include=true&other=param",
         isInline: false,
         inlineLinesRange: undefined,
         anchorText: "link2",
       },
       {
         filePath: expectedAbsolutePath3,
+        rawLinkTarget: "./folder/link3.md?mdr-include=1&other=param",
         isInline: false,
         inlineLinesRange: undefined,
         anchorText: "link3",
@@ -135,6 +140,7 @@ describe("LinkExtractorService", () => {
     const expectedDocLinks: DocLink[] = [
       {
         filePath: expectedAbsolutePath,
+        rawLinkTarget: "./path/to/file&amp;stuff.md?mdr-include=true",
         isInline: false,
         inlineLinesRange: undefined,
         anchorText: "encoded link",
@@ -172,6 +178,7 @@ describe("LinkExtractorService", () => {
     const expectedDocLinks: DocLink[] = [
       {
         filePath: validAbsolute,
+        rawLinkTarget: "./valid.md?mdr-include=true",
         isInline: false,
         inlineLinesRange: undefined,
         anchorText: "Valid Link",
@@ -194,6 +201,7 @@ describe("LinkExtractorService", () => {
     const expectedDocLinks: DocLink[] = [
       {
         filePath: expectedAbsolutePath,
+        rawLinkTarget: "./relative/path/doc.md?mdr-include=true",
         isInline: false,
         inlineLinesRange: undefined,
         anchorText: "link",
@@ -214,6 +222,7 @@ describe("LinkExtractorService", () => {
     const expectedDocLinks: DocLink[] = [
       {
         filePath: expectedResolvedPath,
+        rawLinkTarget: "/absolute/path/doc.md?mdr-include=true",
         isInline: false,
         inlineLinesRange: undefined,
         anchorText: "link",
@@ -233,6 +242,7 @@ describe("LinkExtractorService", () => {
     const expectedDocLinks: DocLink[] = [
       {
         filePath: expectedAbsolutePath,
+        rawLinkTarget: "./inline.md?mdr-include=true&mdr-inline=true",
         isInline: true,
         inlineLinesRange: undefined,
         anchorText: "inline link",
@@ -252,6 +262,7 @@ describe("LinkExtractorService", () => {
     const expectedDocLinks: DocLink[] = [
       {
         filePath: expectedAbsolutePath,
+        rawLinkTarget: "./inline.md?mdr-include=1&mdr-inline=1",
         isInline: true,
         inlineLinesRange: undefined,
         anchorText: "inline link",
@@ -271,6 +282,7 @@ describe("LinkExtractorService", () => {
     const expectedDocLinks: DocLink[] = [
       {
         filePath: expectedAbsolutePath,
+        rawLinkTarget: "./inline.md?mdr-include=true&mdr-inline=true&mdr-lines=45-100",
         isInline: true,
         inlineLinesRange: { from: 45, to: 100 },
         anchorText: "inline link",
@@ -290,6 +302,7 @@ describe("LinkExtractorService", () => {
     const expectedDocLinks: DocLink[] = [
       {
         filePath: expectedAbsolutePath,
+        rawLinkTarget: "./inline.md?mdr-include=true&mdr-inline=true&mdr-lines=-100",
         isInline: true,
         inlineLinesRange: { from: 0, to: 100 },
         anchorText: "inline link",
@@ -309,6 +322,7 @@ describe("LinkExtractorService", () => {
     const expectedDocLinks: DocLink[] = [
       {
         filePath: expectedAbsolutePath,
+        rawLinkTarget: "./inline.md?mdr-include=true&mdr-inline=true&mdr-lines=34-",
         isInline: true,
         inlineLinesRange: { from: 34, to: "end" },
         anchorText: "inline link",
@@ -328,6 +342,7 @@ describe("LinkExtractorService", () => {
     const expectedDocLinks: DocLink[] = [
       {
         filePath: expectedAbsolutePath,
+        rawLinkTarget: "./inline.md?mdr-include=true&mdr-inline=true&mdr-lines=34-end",
         isInline: true,
         inlineLinesRange: { from: 34, to: "end" },
         anchorText: "inline link",
@@ -347,6 +362,7 @@ describe("LinkExtractorService", () => {
     const expectedDocLinks: DocLink[] = [
       {
         filePath: expectedAbsolutePath,
+        rawLinkTarget: "./doc.md?mdr-include=true&mdr-lines=10-20",
         isInline: false,
         inlineLinesRange: undefined,
         anchorText: "link",
@@ -366,6 +382,7 @@ describe("LinkExtractorService", () => {
     const expectedDocLinks: DocLink[] = [
       {
         filePath: expectedAbsolutePath,
+        rawLinkTarget: "./inline.md?mdr-include=true&mdr-inline=true&mdr-lines=abc-def",
         isInline: true,
         inlineLinesRange: undefined,
         anchorText: "inline link",
@@ -385,6 +402,7 @@ describe("LinkExtractorService", () => {
     const expectedDocLinks: DocLink[] = [
       {
         filePath: expectedAbsolutePath,
+        rawLinkTarget: "./inline.md?mdr-include=true&mdr-inline=true&mdr-lines=100-50",
         isInline: true,
         inlineLinesRange: undefined,
         anchorText: "inline link",
@@ -405,6 +423,7 @@ describe("LinkExtractorService", () => {
     const expectedDocLinks: DocLink[] = [
       {
         filePath: expectedAbsolutePath,
+        rawLinkTarget: "./inline.md?mdr-include=true&mdr-inline=true&mdr-lines=10-20-30",
         isInline: true,
         inlineLinesRange: undefined,
         anchorText: "inline link",
@@ -440,30 +459,35 @@ describe("LinkExtractorService", () => {
     const expectedDocLinks: DocLink[] = [
       {
         filePath: absNormal,
+        rawLinkTarget: "./normal.md?mdr-include=true",
         isInline: false,
         inlineLinesRange: undefined,
         anchorText: "Normal Link",
       },
       {
         filePath: absInline1,
+        rawLinkTarget: "./inline1.md?mdr-include=true&mdr-inline=true&mdr-lines=10-20",
         isInline: true,
         inlineLinesRange: { from: 10, to: 20 },
         anchorText: "Inline Link 1",
       },
       {
         filePath: absInline2,
+        rawLinkTarget: "./inline2.md?mdr-include=1&mdr-inline=1&mdr-lines=-5",
         isInline: true,
         inlineLinesRange: { from: 0, to: 5 },
         anchorText: "Inline Link 2",
       },
       {
         filePath: absNormal2,
+        rawLinkTarget: "../normal2.md?mdr-include=1",
         isInline: false,
         inlineLinesRange: undefined,
         anchorText: "Normal Link 2",
       },
       {
         filePath: absInline3,
+        rawLinkTarget: "./inline3.md?mdr-include=1&mdr-inline=1&mdr-lines=50-",
         isInline: true,
         inlineLinesRange: { from: 50, to: "end" },
         anchorText: "Inline Link 3",
