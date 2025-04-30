@@ -1,88 +1,97 @@
-import { AttachedItem, DocContextSections, IDocFormatterService, DocLink } from "./types.js";
+import micromatch from "micromatch";
+import { logger } from "./logger.js";
+import {
+  AttachedItem,
+  AttachedItemFileType,
+  ContextItem,
+  Doc,
+  DocLinkRange,
+  IDocFormatterService,
+  IDocIndexService,
+} from "./types.js";
+import { getErrorMsg } from "./util.js";
 
 export class DocFormatterService implements IDocFormatterService {
-  /**
-   * Formats a prepared AttachedItem (doc or file) for inclusion in the context.
-   * Assumes content has already been processed for inlines if applicable.
-   */
-  formatDoc(item: AttachedItem): string {
-    // Trim empty lines at start and end of content while preserving internal empty lines
-    const trimmedContent = item.content?.replace(/^\s*\n+|\n+\s*$/g, "");
+  constructor(private docIndexService: IDocIndexService) {}
 
-    if (item.isMarkdown) {
-      // Format as <doc> for markdown
-      const escapedDescription = item.description?.replace(/"/g, "&quot;");
-      const descAttr = escapedDescription ? ` description="${escapedDescription}"` : "";
-      return `<doc${descAttr} file="${item.filePath}">\n${trimmedContent}\n</doc>`;
+  async formatDoc(item: ContextItem): Promise<string> {
+    const { doc, type, linkedViaAnchor } = item;
+    const fileType: AttachedItemFileType = doc.isMarkdown ? "doc" : "file";
+
+    const trimmedContent = doc.content?.replace(/^\s*\n+|\n+\s*$/g, "") ?? "";
+
+    const inlineFormattedDocs: string[] = [];
+    if (doc.isMarkdown && !doc.isError) {
+      for (const link of doc.linksTo) {
+        if (link.isInline) {
+          try {
+            const inlineDoc = await this.docIndexService.getDoc(link.filePath);
+            if (inlineDoc.isError) {
+              logger.warn(
+                `Skipping inline expansion for error doc: ${link.filePath} in ${doc.filePath}`
+              );
+              continue;
+            }
+            let inlineContent = inlineDoc.content ?? "";
+            inlineContent = this.extractRangeContent(inlineContent, link.inlineLinesRange);
+            const rangeAttr = link.inlineLinesRange
+              ? ` lines="${this.formatRange(link.inlineLinesRange)}"`
+              : "";
+            const escapedDescription = link.anchorText?.replace(/"/g, "&quot;") ?? "";
+            const inlineTag = `<inline_doc description="${escapedDescription}" file="${link.filePath}"${rangeAttr}>\n${inlineContent}\n</inline_doc>`;
+            inlineFormattedDocs.push(inlineTag);
+          } catch (error) {
+            logger.error(
+              `Failed to fetch or format inline doc ${link.filePath} referenced in ${doc.filePath}: ${getErrorMsg(error)}`
+            );
+          }
+        }
+      }
+    }
+
+    const inlineContentBlock =
+      inlineFormattedDocs.length > 0 ? "\n\n" + inlineFormattedDocs.join("\n\n") : "";
+
+    const descriptionSource =
+      type === "related" ? (linkedViaAnchor ?? doc.meta.description) : doc.meta.description;
+
+    const escapedDescription = descriptionSource?.replace(/"/g, "&quot;");
+    const descAttr = escapedDescription ? ` description="${escapedDescription}"` : "";
+
+    if (fileType === "doc") {
+      return `<doc${descAttr} type="${type}" file="${doc.filePath}">\n${trimmedContent}${inlineContentBlock}\n</doc>`;
     } else {
-      // Format as <file> for non-markdown
-      return `<file file="${item.filePath}">\n${trimmedContent}\n</file>`;
+      return `<file${descAttr} type="${type}" file="${doc.filePath}">\n${trimmedContent}${inlineContentBlock}\n</file>`;
     }
   }
 
-  /**
-   * Formats the content for an inline inclusion.
-   */
-  formatInlineDoc(link: DocLink, content: string): string {
-    const trimmedContent = content.replace(/^\s*\n+|\n+\s*$/g, "");
-    const escapedDescription = link.anchorText.replace(/"/g, "&quot;");
-    const descAttr = ` description="${escapedDescription}"`;
-    const fileAttr = ` file="${link.filePath}"`;
-    let linesAttr = "";
-    if (link.inlineLinesRange) {
-      linesAttr = ` lines="${link.inlineLinesRange.from}-${link.inlineLinesRange.to}"`;
-    }
-
-    // Return the content wrapped in the inline tag
-    return `<inline_doc${descAttr}${fileAttr}${linesAttr}>\n${trimmedContent}\n</inline_doc>`;
+  async formatContextOutput(items: ContextItem[]): Promise<string> {
+    const formattedDocs = await Promise.all(items.map((item) => this.formatDoc(item)));
+    return formattedDocs.join("\n\n");
   }
 
-  /**
-   * Formats the final context to be passed back to the agent.
-   */
-  formatContext(sections: DocContextSections): string {
-    const formattedSections = [];
+  private extractRangeContent(content: string, range?: DocLinkRange): string {
+    if (!range) {
+      return content;
+    }
+    const lines = content.split("\n");
+    const startLine = Math.max(0, range.from);
+    const endLine =
+      range.to === "end"
+        ? lines.length
+        : typeof range.to === "number"
+          ? Math.min(lines.length, range.to + 1)
+          : lines.length;
 
-    if (sections.alwaysAttachedDocs.length > 0) {
-      formattedSections.push(
-        "<global_rules>\n" +
-          sections.alwaysAttachedDocs.map((item) => this.formatDoc(item)).join("\n\n") +
-          "\n</global_rules>"
-      );
+    if (startLine >= endLine) {
+      logger.warn(`Invalid range ${this.formatRange(range)}: start >= end. Returning empty.`);
+      return "";
     }
 
-    if (sections.relatedAttachedFiles.length > 0) {
-      formattedSections.push(
-        "<related_files>\n" +
-          sections.relatedAttachedFiles.map((item) => this.formatDoc(item)).join("\n\n") +
-          "\n</related_files>"
-      );
-    }
+    return lines.slice(startLine, endLine).join("\n");
+  }
 
-    if (sections.relatedAttachedDocs.length > 0) {
-      formattedSections.push(
-        "<related_docs>\n" +
-          sections.relatedAttachedDocs.map((item) => this.formatDoc(item)).join("\n\n") +
-          "\n</related_docs>"
-      );
-    }
-
-    if (sections.autoAttachedDocs.length > 0) {
-      formattedSections.push(
-        "<auto_attached_docs>\n" +
-          sections.autoAttachedDocs.map((item) => this.formatDoc(item)).join("\n\n") +
-          "\n</auto_attached_docs>"
-      );
-    }
-
-    if (sections.agentAttachedDocs.length > 0) {
-      formattedSections.push(
-        "<agent_attached_docs>\n" +
-          sections.agentAttachedDocs.map((item) => this.formatDoc(item)).join("\n\n") +
-          "\n</agent_attached_docs>"
-      );
-    }
-
-    return formattedSections.join("\n\n");
+  private formatRange(range: DocLinkRange): string {
+    return `${range.from}-${range.to}`;
   }
 }

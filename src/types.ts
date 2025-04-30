@@ -14,8 +14,6 @@ export interface DocLink {
   filePath: string;
   isInline: boolean;
   inlineLinesRange?: DocLinkRange;
-  startIndex: number;
-  endIndex: number;
 }
 
 export interface Doc {
@@ -58,36 +56,35 @@ export interface IDocIndexService {
   getDoc(absoluteFilePath: string): Promise<Doc>;
   getDocs(absoluteFilePaths: string[]): Promise<Doc[]>;
   getAgentAttachableDocs(): Doc[];
+  getDocMap(): DocIndex;
+  docs: Doc[];
 }
 
+export type AttachedItemFileType = "doc" | "file";
+export type AttachedItemType = "auto" | "agent" | "always" | "related";
 export interface AttachedItem {
   filePath: string;
   description?: string;
   content?: string;
-  isMarkdown: boolean;
+  fileType: AttachedItemFileType;
+  type: AttachedItemType;
 }
 
-export interface DocContextSections {
-  autoAttachedDocs: AttachedItem[];
-  agentAttachedDocs: AttachedItem[];
-  alwaysAttachedDocs: AttachedItem[];
-  relatedAttachedDocs: AttachedItem[];
-  relatedAttachedFiles: AttachedItem[];
+export interface ContextItem {
+  doc: Doc;
+  type: AttachedItemType;
+  linkedViaAnchor?: string;
 }
 
 export interface IDocContextService {
-  buildContext(attachedFiles: string[], relevantDocsByDescription: string[]): Promise<string>;
-}
-
-export interface Config {
-  MARKDOWN_GLOB_PATTERN: string;
-  PROJECT_ROOT: string;
-  LOG_LEVEL: "debug" | "info" | "warn" | "error";
-  HOIST_ORDER: "pre" | "post";
+  buildContextItems(
+    attachedFiles: string[],
+    relevantDocsByDescription: string[]
+  ): Promise<ContextItem[]>;
+  buildContextOutput(attachedFiles: string[], relevantDocsByDescription: string[]): Promise<string>;
 }
 
 export interface IDocFormatterService {
-  formatDoc(item: AttachedItem): string;
-  formatInlineDoc(link: DocLink, content: string): string;
-  formatContext(sections: DocContextSections): string;
+  formatContextOutput(items: ContextItem[]): Promise<string>;
+  formatDoc(item: ContextItem): Promise<string>;
 }

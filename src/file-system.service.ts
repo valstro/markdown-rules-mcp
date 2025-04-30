@@ -3,7 +3,6 @@ import fs from "fs/promises";
 import path from "path";
 import { Config } from "./config.js";
 import { IFileSystemService } from "./types.js";
-import { logger } from "./logger.js";
 
 /**
  * Manages the file system operations.
@@ -43,32 +42,26 @@ export class FileSystemService implements IFileSystemService {
   }
 
   /**
-   * Check if a path exists (file or directory).
-   * @param path - The path to check.
-   * @returns True if the path exists, false otherwise.
-   */
-  async pathExists(pathToCheck: string): Promise<boolean> {
-    try {
-      await fs.access(pathToCheck);
-      return true;
-    } catch (error: any) {
-      // Specifically check for ENOENT (Error NO ENTry)
-      if (error.code === "ENOENT") {
-        return false;
-      }
-      // Log other unexpected errors but still return false as access failed
-      logger.error(`Error checking path existence for "${pathToCheck}": ${error.message}`);
-      return false;
-    }
-  }
-
-  /**
    * Resolve a relative or absolute path to an absolute path
    * @param relativeOrAbsolutePath - The path to resolve
    * @returns The absolute path
    */
   resolvePath(...paths: string[]): string {
     return path.resolve(...paths);
+  }
+
+  /**
+   * Check if a path exists (file or directory).
+   * @param path - The path to check.
+   * @returns True if the path exists, false otherwise.
+   */
+  async pathExists(path: string): Promise<boolean> {
+    try {
+      await fs.access(path);
+      return true;
+    } catch (error: any) {
+      return false;
+    }
   }
 
   /**

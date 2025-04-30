@@ -27,6 +27,10 @@ export class DocIndexService implements IDocIndexService {
     return Array.from(this.docMap.values());
   }
 
+  getDocMap(): DocIndex {
+    return this.docMap;
+  }
+
   constructor(
     private config: Config,
     private fileSystem: IFileSystemService,
@@ -97,22 +101,24 @@ export class DocIndexService implements IDocIndexService {
           return [];
         }
 
-        // Extract links from the current document
-        const linkedDocs = this.linkExtractor.extractLinks(filePath, doc.content);
-        // Update the doc object in the map with its links
-        doc.linksTo = linkedDocs;
+        // Use the links already populated by getDoc when the doc was loaded/parsed
+        const linkedDocs = doc.linksTo;
 
-        // Identify paths that are not yet in our graph map *and* haven't been processed yet
+        // Identify paths that are not yet in our graph map
         const newPathsToLoad = linkedDocs
-          .filter((doc) => !this.docMap.has(doc.filePath))
-          .map((doc) => doc.filePath);
+          .filter((link) => !this.docMap.has(link.filePath))
+          .map((link) => link.filePath);
 
+        // Identify paths to queue for the *next* processing iteration.
+        // These are linked paths that haven't been processed *in any previous or the current* iteration.
         const newPathsToQueue = linkedDocs
-          .filter((doc) => !processedPaths.has(doc.filePath) && !pathsToProcess.has(doc.filePath))
-          .map((doc) => doc.filePath);
+          .filter(
+            (link) => !processedPaths.has(link.filePath) && !pathsToProcess.has(link.filePath)
+          ) // Check processedPaths *and* the current pathsToProcess buffer
+          .map((link) => link.filePath);
 
         if (newPathsToLoad.length > 0) {
-          // Fetch the newly discovered documents (this also adds them to docMap)
+          // Fetch the newly discovered documents (this also adds them to docMap via getDoc, which extracts links)
           await this.getDocs(newPathsToLoad); // Wait for loading before queuing
           logger.debug(
             `Loaded ${newPathsToLoad.length} new docs linked from ${filePath}: ${newPathsToLoad.join(", ")}`
@@ -140,55 +146,64 @@ export class DocIndexService implements IDocIndexService {
    * read/parsed docs (or error placeholders) to the internal map.
    */
   async getDoc(absoluteFilePath: string): Promise<Doc> {
-    if (this.docMap.has(absoluteFilePath)) {
-      return this.docMap.get(absoluteFilePath)!;
+    // Ensure case consistency if needed, assuming paths are already normalized
+    const normalizedPath = absoluteFilePath; // Add normalization if required by OS/FS
+
+    if (this.docMap.has(normalizedPath)) {
+      return this.docMap.get(normalizedPath)!;
     }
     // Check if a fetch for this doc is already in progress
-    if (this.pendingDocPromises.has(absoluteFilePath)) {
-      logger.debug(`Cache miss, but fetch in progress for: ${absoluteFilePath}`);
-      return this.pendingDocPromises.get(absoluteFilePath)!;
+    if (this.pendingDocPromises.has(normalizedPath)) {
+      logger.debug(`Cache miss, but fetch in progress for: ${normalizedPath}`);
+      return this.pendingDocPromises.get(normalizedPath)!;
     }
 
-    logger.debug(`Cache miss. Reading file: ${absoluteFilePath}`);
+    logger.debug(`Cache miss. Reading file: ${normalizedPath}`);
 
     // Start the fetch and store the promise
     const fetchPromise = (async (): Promise<Doc> => {
       try {
-        const fileContent = await this.fileSystem.readFile(absoluteFilePath);
-        const isMarkdown = this.docParser.isMarkdown(absoluteFilePath);
+        const fileContent = await this.fileSystem.readFile(normalizedPath);
+        const isMarkdown = this.docParser.isMarkdown(normalizedPath);
         let doc: Doc;
         if (isMarkdown) {
-          doc = this.docParser.parse(absoluteFilePath, fileContent);
+          doc = this.docParser.parse(normalizedPath, fileContent);
+          // Ensure links are extracted when the doc is first parsed
+          if (!doc.isError) {
+            // Only extract links if parsing didn't fail
+            doc.linksTo = this.linkExtractor.extractLinks(normalizedPath, fileContent);
+          }
         } else {
           // For non-markdown, create a basic doc entry without parsing frontmatter
-          doc = this.docParser.getBlankDoc(absoluteFilePath, {
+          doc = this.docParser.getBlankDoc(normalizedPath, {
             content: fileContent,
             isMarkdown: false,
           });
         }
-        this.docMap.set(absoluteFilePath, doc);
+
+        this.docMap.set(normalizedPath, doc);
         return doc;
       } catch (error) {
         // Log specific error type if available (e.g., ENOENT)
         const errorMessage = getErrorMsg(error);
         logger.error(
-          `Error reading or parsing file for graph: ${absoluteFilePath}. Error: ${errorMessage}`
+          `Error reading or parsing file for graph: ${normalizedPath}. Error: ${errorMessage}`
         );
         // Create a minimal placeholder Doc
-        const errorDoc = this.docParser.getBlankDoc(absoluteFilePath, {
+        const errorDoc = this.docParser.getBlankDoc(normalizedPath, {
           isError: true,
           errorReason: `Error loading content: ${errorMessage}`,
-          isMarkdown: this.docParser.isMarkdown(absoluteFilePath),
+          isMarkdown: this.docParser.isMarkdown(normalizedPath), // Try to determine type even on error
         });
-        this.docMap.set(absoluteFilePath, errorDoc); // Still add placeholder to map
+        this.docMap.set(normalizedPath, errorDoc); // Still add placeholder to map
         return errorDoc;
       } finally {
         // Once fetch is complete (success or error), remove the pending promise
-        this.pendingDocPromises.delete(absoluteFilePath);
+        this.pendingDocPromises.delete(normalizedPath);
       }
     })();
 
-    this.pendingDocPromises.set(absoluteFilePath, fetchPromise);
+    this.pendingDocPromises.set(normalizedPath, fetchPromise);
     return fetchPromise;
   }
 
