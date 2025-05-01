@@ -21,9 +21,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Actor
-        run: echo "GITHUB_ACTOR=$(echo $GITHUB_ACTOR)" >> $GITHUB_ENV
-
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
