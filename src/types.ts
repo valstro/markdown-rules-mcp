@@ -37,6 +37,7 @@ export interface IFileSystemService {
   getDirname(relativeOrAbsolutePath: string): string;
   getProjectRoot(): string;
   pathExists(path: string): Promise<boolean>;
+  getRelativePath(absolutePath: string): string;
 }
 
 export type DocOverride = Partial<Pick<Doc, "content" | "isError" | "errorReason" | "isMarkdown">>;

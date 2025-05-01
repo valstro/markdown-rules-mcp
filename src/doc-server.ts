@@ -41,15 +41,17 @@ export class MarkdownRulesServer {
     const relevantDocsByDescriptionEnum = z.enum(descriptions as [string, ...string[]]);
 
     this.server.tool(
-      "get_docs",
-      "Get relevant markdown docs in the codebase based on the user's query",
+      "get_relevant_docs",
+      "Get relevant markdown docs inside this project before answering the user's query",
       {
         attachedFiles: z
-          .array(z.string().describe("The path to the file to attach"))
-          .describe("The list of files the user included in the user query"),
+          .array(z.string().describe("The file path to attach"))
+          .describe("A list of file paths the user included in their query"),
         relevantDocsByDescription: z
           .array(relevantDocsByDescriptionEnum.describe("The description of the relevant doc"))
-          .describe("The list of relevant docs based on the user's query by description"),
+          .describe(
+            "A list of relevant docs based on the user's query. Use the description to determine if the doc is relevant to the user's query."
+          ),
       },
       async ({ attachedFiles, relevantDocsByDescription }) => {
         const text = await this.docsContextService.buildContextOutput(
@@ -63,13 +65,21 @@ export class MarkdownRulesServer {
       }
     );
 
-    return ["get_docs"];
+    return ["get_relevant_docs"];
   }
 
   async run(): Promise<void> {
     try {
       await this.docIndex.buildIndex();
+
       const agentAttachableDocs = this.docIndex.getAgentAttachableDocs();
+
+      logger.info(
+        `Found ${agentAttachableDocs.length} agent attachable docs: ${agentAttachableDocs
+          .map((doc) => doc.meta.description)
+          .join(", ")}`
+      );
+
       const registeredTools = this.setupTools(agentAttachableDocs);
 
       logger.info(

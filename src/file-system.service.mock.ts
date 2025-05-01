@@ -9,5 +9,6 @@ export function createMockFileSystemService(): Mocked<IFileSystemService> {
     getDirname: vi.fn((filePath) => filePath.substring(0, filePath.lastIndexOf("/"))),
     getProjectRoot: vi.fn(() => "/project"),
     pathExists: vi.fn(),
+    getRelativePath: vi.fn((filePath) => filePath),
   };
 }

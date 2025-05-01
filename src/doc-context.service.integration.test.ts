@@ -49,6 +49,7 @@ describe("DocContextService Integration Tests", () => {
   let configFileAbs: string;
 
   // --- Setup ---
+  let toRelative: (filePath: string) => string;
   let setup: (config?: Partial<Config>) => Promise<void>;
 
   beforeAll(async () => {
@@ -170,6 +171,9 @@ Links back to [Cycle A](./cycle-a.md?mdr-include=true)`
     fileSystemService = new FileSystemService(mockConfig);
     docParserService = new DocParserService();
     linkExtractorService = new LinkExtractorService(fileSystemService);
+    toRelative = (filePath: string) => {
+      return path.relative(mockConfig.PROJECT_ROOT, filePath);
+    };
 
     setup = async (config: Partial<Config> = {}) => {
       mockConfig = { ...mockConfig, ...config };
@@ -192,11 +196,11 @@ Links back to [Cycle A](./cycle-a.md?mdr-include=true)`
 
   it("should include 'always' and 'related' docs with empty input", async () => {
     const output = await docContextService.buildContextOutput([], []);
-    const expectedOutput = `<doc description="Related Doc" type="related" file="${relatedDocPathAbs}">
+    const expectedOutput = `<doc description="Related Doc" type="related" file="${toRelative(relatedDocPathAbs)}">
 This doc is linked from the 'always' doc.
 </doc>
 
-<doc description="Always Included" type="always" file="${alwaysDocPathAbs}">
+<doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
 This doc is always present.
 It links to [Related Doc](./related.md?mdr-include=true).
 </doc>`;
@@ -206,19 +210,19 @@ It links to [Related Doc](./related.md?mdr-include=true).
   it("should include 'auto' doc when attached file matches glob", async () => {
     const output = await docContextService.buildContextOutput([mainTsPathAbs], []);
     const expectedInlineContent = "Line 1\nLine 2";
-    const expectedOutput = `<doc description="Related Doc" type="related" file="${relatedDocPathAbs}">
+    const expectedOutput = `<doc description="Related Doc" type="related" file="${toRelative(relatedDocPathAbs)}">
 This doc is linked from the 'always' doc.
 </doc>
 
-<doc description="Always Included" type="always" file="${alwaysDocPathAbs}">
+<doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
 This doc is always present.
 It links to [Related Doc](./related.md?mdr-include=true).
 </doc>
 
-<doc description="Auto TS Inclusion" type="auto" file="${autoTsDocPathAbs}">
+<doc description="Auto TS Inclusion" type="auto" file="${toRelative(autoTsDocPathAbs)}">
 This doc applies to TypeScript files.
 It has an inline link: [Inline Target Section](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=1-2)
-<inline_doc description="Inline Target Section" file="${inlineTargetDocPathAbs}" lines="1-2">
+<inline_doc description="Inline Target Section" file="${toRelative(inlineTargetDocPathAbs)}" lines="1-2">
 ${expectedInlineContent}
 </inline_doc>
 </doc>`;
@@ -227,20 +231,20 @@ ${expectedInlineContent}
 
   it("should include 'agent' doc  & its related doc when its path is provided", async () => {
     const output = await docContextService.buildContextOutput([], [agentDocPathAbs]);
-    const expectedOutput = `<doc description="Related Doc" type="related" file="${relatedDocPathAbs}">
+    const expectedOutput = `<doc description="Related Doc" type="related" file="${toRelative(relatedDocPathAbs)}">
 This doc is linked from the 'always' doc.
 </doc>
 
-<doc description="Always Included" type="always" file="${alwaysDocPathAbs}">
+<doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
 This doc is always present.
 It links to [Related Doc](./related.md?mdr-include=true).
 </doc>
 
-<doc description="Related Doc 2" type="related" file="${relatedDoc2PathAbs}">
+<doc description="Related Doc 2" type="related" file="${toRelative(relatedDoc2PathAbs)}">
 This doc is related to various things.
 </doc>
 
-<doc description="Agent Triggered Doc" type="agent" file="${agentDocPathAbs}">
+<doc description="Agent Triggered Doc" type="agent" file="${toRelative(agentDocPathAbs)}">
 This doc is triggered by the agent description match.
 and is related to [Related Doc 2](./related2.md?mdr-include=true).
 </doc>`;
@@ -249,20 +253,20 @@ and is related to [Related Doc 2](./related2.md?mdr-include=true).
 
   it("should handle cycles gracefully", async () => {
     const output = await docContextService.buildContextOutput([], [cycleADocPathAbs]);
-    const expectedOutput = `<doc description="Related Doc" type="related" file="${relatedDocPathAbs}">
+    const expectedOutput = `<doc description="Related Doc" type="related" file="${toRelative(relatedDocPathAbs)}">
 This doc is linked from the 'always' doc.
 </doc>
 
-<doc description="Always Included" type="always" file="${alwaysDocPathAbs}">
+<doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
 This doc is always present.
 It links to [Related Doc](./related.md?mdr-include=true).
 </doc>
 
-<doc description="Cycle B" type="related" file="${cycleBDocPathAbs}">
+<doc description="Cycle B" type="related" file="${toRelative(cycleBDocPathAbs)}">
 Links back to [Cycle A](./cycle-a.md?mdr-include=true)
 </doc>
 
-<doc description="Cycle A" type="agent" file="${cycleADocPathAbs}">
+<doc description="Cycle A" type="agent" file="${toRelative(cycleADocPathAbs)}">
 Links to [Cycle B](./cycle-b.md?mdr-include=true)
 </doc>`;
     expect(nl(output)).toBe(nl(expectedOutput));
@@ -280,11 +284,11 @@ It links to [Config File](./config.json?mdr-include=true).`;
     await docIndexService.buildIndex(); // Re-index
 
     const output = await docContextService.buildContextOutput([], []);
-    const expectedOutput = `<file description="Config File" type="related" file="${configFileAbs}">
+    const expectedOutput = `<file description="Config File" type="related" file="${toRelative(configFileAbs)}">
 { "config": "value" }
 </file>
 
-<doc description="Always Included" type="always" file="${alwaysDocPathAbs}">
+<doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
 This doc is always present.
 It links to [Config File](./config.json?mdr-include=true).
 </doc>`;
@@ -349,20 +353,20 @@ This is related to Pre A.`
 
     const output = await docContextService.buildContextOutput([], [preAPathAbs]);
 
-    const expectedOutput = `<doc description="Always Included" type="always" file="${alwaysDocPathAbs}">
+    const expectedOutput = `<doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
 This doc is always present.
 It links to [Related Doc](./related.md?mdr-include=true).
 </doc>
 
-<doc description="Related Doc" type="related" file="${relatedDocPathAbs}">
+<doc description="Related Doc" type="related" file="${toRelative(relatedDocPathAbs)}">
 This doc is linked from the 'always' doc.
 </doc>
 
-<doc description="Pre A (Agent Trigger)" type="agent" file="${preAPathAbs}">
+<doc description="Pre A (Agent Trigger)" type="agent" file="${toRelative(preAPathAbs)}">
 Links to [Pre B](./pre-b.md?mdr-include=true)
 </doc>
 
-<doc description="Pre B" type="related" file="${preBPathAbs}">
+<doc description="Pre B" type="related" file="${toRelative(preBPathAbs)}">
 This is related to Pre A.
 </doc>`;
 
@@ -393,31 +397,31 @@ Single Line 3: [Inline 3-3](./inline-target.md?mdr-include=true&mdr-inline=true&
     const expectedInline_0_1 = "Line 0\nLine 1";
     const expectedInline_2_end = "Line 2\nLine 3 (end)";
     const expectedInline_3_3 = "Line 3 (end)";
-    const expectedOutput = `<doc description="Related Doc" type="related" file="${relatedDocPathAbs}">
+    const expectedOutput = `<doc description="Related Doc" type="related" file="${toRelative(relatedDocPathAbs)}">
 This doc is linked from the 'always' doc.
 </doc>
 
-<doc description="Always Included" type="always" file="${alwaysDocPathAbs}">
+<doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
 This doc is always present.
 It links to [Related Doc](./related.md?mdr-include=true).
 </doc>
 
-<doc description="Auto TS Inclusion Extended Ranges" type="auto" file="${autoTsDocPathAbs}">
+<doc description="Auto TS Inclusion Extended Ranges" type="auto" file="${toRelative(autoTsDocPathAbs)}">
 This doc applies to TypeScript files.
 Range 1-2: [Inline 1-2](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=1-2)
-<inline_doc description="Inline 1-2" file="${inlineTargetDocPathAbs}" lines="1-2">
+<inline_doc description="Inline 1-2" file="${toRelative(inlineTargetDocPathAbs)}" lines="1-2">
 ${expectedInline_1_2}
 </inline_doc>
 Range 0-1: [Inline 0-1](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=-1)
-<inline_doc description="Inline 0-1" file="${inlineTargetDocPathAbs}" lines="0-1">
+<inline_doc description="Inline 0-1" file="${toRelative(inlineTargetDocPathAbs)}" lines="0-1">
 ${expectedInline_0_1}
 </inline_doc>
 Range 2-end: [Inline 2-end](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=2-)
-<inline_doc description="Inline 2-end" file="${inlineTargetDocPathAbs}" lines="2-end">
+<inline_doc description="Inline 2-end" file="${toRelative(inlineTargetDocPathAbs)}" lines="2-end">
 ${expectedInline_2_end}
 </inline_doc>
 Single Line 3: [Inline 3-3](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=3-3)
-<inline_doc description="Inline 3-3" file="${inlineTargetDocPathAbs}" lines="3-3">
+<inline_doc description="Inline 3-3" file="${toRelative(inlineTargetDocPathAbs)}" lines="3-3">
 ${expectedInline_3_3}
 </inline_doc>
 </doc>`;
@@ -455,30 +459,31 @@ This should apply to TS and JS files.`
 
     // Attach both a .ts and a .js file
     const output = await docContextService.buildContextOutput([mainTsPathAbs, utilJsPathAbs], []);
-    const expectedOutput = `<doc description="Related Doc" type="related" file="${relatedDocPathAbs}">
+    const expectedOutput = `<doc description="Related Doc" type="related" file="${toRelative(relatedDocPathAbs)}">
 This doc is linked from the 'always' doc.
 </doc>
 
-<doc description="Always Included" type="always" file="${alwaysDocPathAbs}">
+<doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
 This doc is always present.
 It links to [Related Doc](./related.md?mdr-include=true).
 </doc>
 
-<doc description="Auto TS Inclusion" type="auto" file="${autoTsDocPathAbs}">
+<doc description="Auto TS Inclusion" type="auto" file="${toRelative(autoTsDocPathAbs)}">
 This doc applies to TypeScript files.
 It has an inline link: [Inline Target Section](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=1-2)
-<inline_doc description="Inline Target Section" file="${inlineTargetDocPathAbs}" lines="1-2">
+<inline_doc description="Inline Target Section" file="${toRelative(inlineTargetDocPathAbs)}" lines="1-2">
 Line 1
 Line 2
 </inline_doc>
 </doc>
 
-<doc description="Multi Glob Test" type="auto" file="${multiGlobDocAbs}">
+<doc description="Multi Glob Test" type="auto" file="${toRelative(multiGlobDocAbs)}">
 This should apply to TS and JS files.
 </doc>`;
     expect(nl(output)).toBe(nl(expectedOutput));
     // Verify the multi-glob doc appears only once
-    const multiGlobCount = (output.match(new RegExp(multiGlobDocAbs, "g")) || []).length;
+    const multiGlobCount = (output.match(new RegExp(toRelative(multiGlobDocAbs), "g")) || [])
+      .length;
     expect(multiGlobCount).toBe(1);
 
     // Clean up specific files
@@ -503,16 +508,16 @@ This matches JSON glob and could be agent-triggered.`
 
     // Attach config.json (matches glob) AND provide the doc path via agent list
     const output = await docContextService.buildContextOutput([configFileAbs], [autoAgentDocAbs]);
-    const expectedOutput = `<doc description="Related Doc" type="related" file="${relatedDocPathAbs}">
+    const expectedOutput = `<doc description="Related Doc" type="related" file="${toRelative(relatedDocPathAbs)}">
 This doc is linked from the 'always' doc.
 </doc>
 
-<doc description="Always Included" type="always" file="${alwaysDocPathAbs}">
+<doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
 This doc is always present.
 It links to [Related Doc](./related.md?mdr-include=true).
 </doc>
 
-<doc description="Auto Agent Doc" type="auto" file="${autoAgentDocAbs}">
+<doc description="Auto Agent Doc" type="auto" file="${toRelative(autoAgentDocAbs)}">
 This matches JSON glob and could be agent-triggered.
 </doc>`;
     expect(nl(output)).toBe(nl(expectedOutput));

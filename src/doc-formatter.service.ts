@@ -38,7 +38,7 @@ export class DocFormatterService implements IDocFormatterService {
               ? ` lines="${this.formatRange(link.inlineLinesRange)}"`
               : "";
             const escapedDescription = link.anchorText?.replace(/"/g, "&quot;") ?? "";
-            const inlineTag = `<inline_doc description="${escapedDescription}" file="${link.filePath}"${rangeAttr}>\n${inlineContent}\n</inline_doc>`;
+            const inlineTag = `<inline_doc description="${escapedDescription}" file="${this.fileSystem.getRelativePath(link.filePath)}"${rangeAttr}>\n${inlineContent}\n</inline_doc>`;
 
             const key = link.filePath + "||" + link.rawLinkTarget;
             inlineDocMap.set(key, inlineTag);
@@ -91,9 +91,9 @@ export class DocFormatterService implements IDocFormatterService {
     const descAttr = escapedDescription ? ` description="${escapedDescription}"` : "";
 
     if (fileType === "doc") {
-      return `<doc${descAttr} type="${type}" file="${doc.filePath}">\n${trimmedProcessedContent}\n</doc>`;
+      return `<doc${descAttr} type="${type}" file="${this.fileSystem.getRelativePath(doc.filePath)}">\n${trimmedProcessedContent}\n</doc>`;
     } else {
-      return `<file${descAttr} type="${type}" file="${doc.filePath}">\n${trimmedProcessedContent}\n</file>`;
+      return `<file${descAttr} type="${type}" file="${this.fileSystem.getRelativePath(doc.filePath)}">\n${trimmedProcessedContent}\n</file>`;
     }
   }
 

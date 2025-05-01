@@ -55,7 +55,7 @@ export class DocIndexService implements IDocIndexService {
     logger.info(`Found ${initialPaths.size} initial markdown files.`);
 
     await this.recursivelyResolveAndLoadLinks(initialPaths);
-    logger.info(`Index built. Total docs: ${this.docMap.size}.}`);
+    logger.info(`Index built. Total docs: ${this.docMap.size}.`);
 
     return this.docMap;
   }

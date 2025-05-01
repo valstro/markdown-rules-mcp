@@ -80,4 +80,13 @@ export class FileSystemService implements IFileSystemService {
   getProjectRoot(): string {
     return this.config.PROJECT_ROOT;
   }
+
+  /**
+   * Get the relative path of an absolute path
+   * @param absolutePath - The absolute path to get the relative path of
+   * @returns The relative path of the absolute path
+   */
+  getRelativePath(absolutePath: string): string {
+    return path.relative(this.getProjectRoot(), absolutePath);
+  }
 }
