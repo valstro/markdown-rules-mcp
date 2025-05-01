@@ -30,7 +30,7 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
-    "prepare": "npm run build",
+    "prepare": "husky",
     "watch": "tsc --watch",
     "inspector": "npm run build && LOG_LEVEL=debug MARKDOWN_GLOB_PATTERN=./docs/**/*.md npx @modelcontextprotocol/inspector node build/index.js",
     "prepublishOnly": "npm run build",
