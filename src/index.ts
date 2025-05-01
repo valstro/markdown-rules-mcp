@@ -21,7 +21,7 @@ import { DocFormatterService } from "./doc-formatter.service.js";
     const docFormatter = new DocFormatterService(docIndex, fileSystem);
     const docContextService = new DocContextService(config, docIndex, docFormatter);
 
-    const server = new MarkdownRulesServer(docIndex, docContextService);
+    const server = new MarkdownRulesServer(fileSystem, docIndex, docContextService);
     await server.run();
   } catch (error) {
     logger.error(`Fatal server error: ${error instanceof Error ? error.message : String(error)}`);

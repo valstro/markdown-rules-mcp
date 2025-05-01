@@ -32,7 +32,7 @@
     "build": "vitest --watch=false && tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
     "prepare": "npm run build",
     "watch": "tsc --watch",
-    "inspector": "npm run build && LOG_LEVEL=debug MARKDOWN_GLOB_PATTERN=./src/mocks/**/*.md npx @modelcontextprotocol/inspector node build/index.js",
+    "inspector": "npm run build && LOG_LEVEL=debug MARKDOWN_GLOB_PATTERN=./docs/**/*.md npx @modelcontextprotocol/inspector node build/index.js",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

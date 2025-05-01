@@ -32,19 +32,7 @@ npx -y @smithery/cli install markdown-rules-mcp --client cursor
 
 ## Configuration ⚙️
 
-### 1. Configure Cursor to recognize the Markdown Rules MCP server
-
-...
-
-#### For macOS:
-
-...
-
-#### For Windows:
-
-...
-
-### 2. Add the server configuration:
+### 1. Add the server configuration:
 
 ```json
 {
@@ -59,6 +47,29 @@ npx -y @smithery/cli install markdown-rules-mcp --client cursor
     }
   }
 }
+```
+
+### 2. Add global rule (Cursor only, optional):
+
+You can optionally add a global rule `.cursor/rules/global.mdc` that will be applied to all user queries. This is useful for encouraging the agent to use the `get_relevant_docs` tool when it's relevant.
+
+```mdc
+---
+alwaysApply: true
+---
+
+## Agent Rules: `get_relevant_docs` Tool Usage
+
+**Core Requirement:**
+
+*   You **must** call the `get_relevant_docs` MCP tool before providing your first response in any new chat session.
+
+**When to Call Again:**
+
+*   After the initial call in a chat, you should **only** call `get_relevant_docs` again if one of these specific situations occurs:
+    *   The user explicitly requests it.
+    *   The user attaches new files.
+    *   The user's query introduces a completely new topic unrelated to the previous discussion.
 ```
 
 ## How To Use 📝
@@ -184,7 +195,7 @@ This document covers the main goals and setup instructions.
 See the [Core Utilities](./src/utils.ts?md-link=true) for essential functions.
 
 For configuration details, refer to this section: [Config Example](./config.json?md-embed=1-3)
-<inline_doc description="Config Example" file="config.json" lines="1-3">
+<inline_doc description="Config Example" file="config.json" lines="2-4">
   "apiKey": "YOUR_API_KEY",
   "timeout": 5000,
   "retries": 3,
@@ -203,7 +214,7 @@ This document covers the main goals and setup instructions.
 See the [Core Utilities](./src/utils.ts?md-link=true) for essential functions.
 
 For configuration details, refer to this section: [Config Example](./config.json?md-embed=1-3)
-<inline_doc description="Config Example" file="config.json" lines="1-3">
+<inline_doc description="Config Example" file="config.json" lines="2-4">
   "apiKey": "YOUR_API_KEY",
   "timeout": 5000,
   "retries": 3,
@@ -254,7 +265,8 @@ Built with ❤️ by Valstro
 
 ## Future Improvements
 
-- [ ] Shorten the URL params to be less verbose.
+- [ ] Improve type mapping for output "always" vs "global rules" etc
+- [ ] Add watch mode to re-index docs when markdown files matching the MARKDOWN_GLOB_PATTERN are added/modified/deleted.
 - [ ] Remove inline links entirely & replace with the inline markup.
 - [ ] Provide an indication of how large the doc context is.
 - [ ] Config to limit the number of docs & context that can be attached including a max depth.

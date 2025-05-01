@@ -22,12 +22,13 @@ describe("DocContextService Integration Tests", () => {
   let docFormatterService: DocFormatterService;
   let docContextService: DocContextService;
 
-  // --- File Paths (relative to tempDir) ---
+  // File paths (relative to tempDir)
   const alwaysDocPathRel = "always.md";
   const autoTsDocPathRel = "auto-ts.md";
   const agentDocPathRel = "agent-trigger.md";
   const relatedDocPathRel = "related.md";
   const relatedDoc2PathRel = "related2.md";
+  const manualDocPathRel = "manual.md";
   const inlineTargetDocPathRel = "inline-target.md";
   const mainTsPathRel = "src/main.ts";
   const unrelatedDocPathRel = "unrelated.md";
@@ -35,12 +36,13 @@ describe("DocContextService Integration Tests", () => {
   const cycleBDocPathRel = "cycle-b.md";
   const configFileRel = "config.json";
 
-  // --- Absolute Paths ---
+  // Absolute paths
   let alwaysDocPathAbs: string;
   let autoTsDocPathAbs: string;
   let agentDocPathAbs: string;
   let relatedDocPathAbs: string;
   let relatedDoc2PathAbs: string;
+  let manualDocPathAbs: string;
   let inlineTargetDocPathAbs: string;
   let mainTsPathAbs: string;
   let unrelatedDocPathAbs: string;
@@ -48,7 +50,7 @@ describe("DocContextService Integration Tests", () => {
   let cycleBDocPathAbs: string;
   let configFileAbs: string;
 
-  // --- Setup ---
+  // Setup
   let toRelative: (filePath: string) => string;
   let setup: (config?: Partial<Config>) => Promise<void>;
 
@@ -62,6 +64,7 @@ describe("DocContextService Integration Tests", () => {
     agentDocPathAbs = path.join(tempDir, agentDocPathRel);
     relatedDocPathAbs = path.join(tempDir, relatedDocPathRel);
     relatedDoc2PathAbs = path.join(tempDir, relatedDoc2PathRel);
+    manualDocPathAbs = path.join(tempDir, manualDocPathRel);
     inlineTargetDocPathAbs = path.join(tempDir, inlineTargetDocPathRel);
     mainTsPathAbs = path.join(tempDir, mainTsPathRel);
     unrelatedDocPathAbs = path.join(tempDir, unrelatedDocPathRel);
@@ -72,7 +75,7 @@ describe("DocContextService Integration Tests", () => {
     // Create necessary subdirectories
     await fs.mkdir(path.join(tempDir, "src"), { recursive: true });
 
-    // --- Create Test Files ---
+    // Create test files
     await fs.writeFile(
       alwaysDocPathAbs,
       `---
@@ -121,10 +124,10 @@ This doc is related to various things.`
 
     await fs.writeFile(
       inlineTargetDocPathAbs,
-      `Line 0
-Line 1
+      `Line 1
 Line 2
-Line 3 (end)`
+Line 3
+Line 4 (end)`
     );
 
     await fs.writeFile(mainTsPathAbs, `console.log("Hello from main.ts");`);
@@ -154,6 +157,14 @@ Links back to [Cycle A](./cycle-a.md?md-link=true)`
     );
 
     await fs.writeFile(configFileAbs, `{ "config": "value" }`); // Non-markdown file
+
+    await fs.writeFile(
+      manualDocPathAbs,
+      `---
+description: Manual Doc
+---
+This doc is manually included.`
+    );
   });
 
   afterAll(async () => {
@@ -251,6 +262,23 @@ and is related to [Related Doc 2](./related2.md?md-link=true).
     expect(nl(output)).toBe(nl(expectedOutput));
   });
 
+  it("should include 'manual' doc when its path is provided", async () => {
+    const output = await docContextService.buildContextOutput([manualDocPathAbs], []);
+    const expectedOutput = `<doc description="Related Doc" type="related" file="${toRelative(relatedDocPathAbs)}">
+This doc is linked from the 'always' doc.
+</doc>
+
+<doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
+This doc is always present.
+It links to [Related Doc](./related.md?md-link=true).
+</doc>
+
+<doc description="Manual Doc" type="manual" file="${toRelative(manualDocPathAbs)}">
+This doc is manually included.
+</doc>`;
+    expect(nl(output)).toBe(nl(expectedOutput));
+  });
+
   it("should handle cycles gracefully", async () => {
     const output = await docContextService.buildContextOutput([], [cycleADocPathAbs]);
     const expectedOutput = `<doc description="Related Doc" type="related" file="${toRelative(relatedDocPathAbs)}">
@@ -327,7 +355,41 @@ It links to [Related Doc](./related.md?md-link=true).`
     await fs.rm(emptyTempDir, { recursive: true, force: true }); // Clean up empty dir
   });
 
-  it("should sort NOT hoist context when configured", async () => {
+  it("should hoist context correctly, with multiple 'always' docs linked to same doc", async () => {
+    // Create a second 'always' doc that links to the same doc
+    const alwaysDocPathRel2 = "always-2.md";
+    const alwaysDocPathAbs2 = path.join(tempDir, alwaysDocPathRel2);
+    await fs.writeFile(
+      alwaysDocPathAbs2,
+      `---
+alwaysApply: true
+---
+This 2nd 'always' doc is always present AND has no description.
+It links to [Related Doc](./related.md?md-link=true).`
+    );
+    await docIndexService.buildIndex(); // Re-index
+
+    const output = await docContextService.buildContextOutput([], []);
+    const expectedOutput = `<doc description="Related Doc" type="related" file="${toRelative(relatedDocPathAbs)}">
+This doc is linked from the 'always' doc.
+</doc>
+
+<doc type="always" file="${toRelative(alwaysDocPathAbs2)}">
+This 2nd 'always' doc is always present AND has no description.
+It links to [Related Doc](./related.md?md-link=true).
+</doc>
+
+<doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
+This doc is always present.
+It links to [Related Doc](./related.md?md-link=true).
+</doc>`;
+    expect(nl(output)).toBe(nl(expectedOutput));
+
+    // Clean up specific files for this test
+    await fs.unlink(alwaysDocPathAbs2);
+  });
+
+  it("should NOT hoist context when configured", async () => {
     // Create specific files for this test to ensure clear dependency
     const preAPathRel = "pre-a.md";
     const preBPathRel = "pre-b.md";
@@ -394,9 +456,9 @@ Single Line 3: [Inline 3-3](./inline-target.md?md-link=true&md-embed=3-3)`;
     const output = await docContextService.buildContextOutput([mainTsPathAbs], []);
 
     const expectedInline_1_2 = "Line 1\nLine 2";
-    const expectedInline_0_1 = "Line 0\nLine 1";
-    const expectedInline_2_end = "Line 2\nLine 3 (end)";
-    const expectedInline_3_3 = "Line 3 (end)";
+    const expectedInline_0_1 = "Line 1";
+    const expectedInline_2_end = "Line 2\nLine 3\nLine 4 (end)";
+    const expectedInline_3_3 = "Line 3";
     const expectedOutput = `<doc description="Related Doc" type="related" file="${toRelative(relatedDocPathAbs)}">
 This doc is linked from the 'always' doc.
 </doc>
@@ -413,7 +475,7 @@ Range 1-2: [Inline 1-2](./inline-target.md?md-link=true&md-embed=1-2)
 ${expectedInline_1_2}
 </inline_doc>
 Range 0-1: [Inline 0-1](./inline-target.md?md-link=true&md-embed=-1)
-<inline_doc description="Inline 0-1" file="${toRelative(inlineTargetDocPathAbs)}" lines="0-1">
+<inline_doc description="Inline 0-1" file="${toRelative(inlineTargetDocPathAbs)}" lines="1-1">
 ${expectedInline_0_1}
 </inline_doc>
 Range 2-end: [Inline 2-end](./inline-target.md?md-link=true&md-embed=2-)

@@ -284,7 +284,7 @@ describe("LinkExtractorService", () => {
         filePath: expectedAbsolutePath,
         rawLinkTarget: "./inline.md?md-link=true&md-embed=45-100",
         isInline: true,
-        inlineLinesRange: { from: 45, to: 100 },
+        inlineLinesRange: { from: 44, to: 99 },
         anchorText: "inline link",
       },
     ];
@@ -304,7 +304,7 @@ describe("LinkExtractorService", () => {
         filePath: expectedAbsolutePath,
         rawLinkTarget: "./inline.md?md-link=true&md-embed=-100",
         isInline: true,
-        inlineLinesRange: { from: 0, to: 100 },
+        inlineLinesRange: { from: 0, to: 99 },
         anchorText: "inline link",
       },
     ];
@@ -324,7 +324,7 @@ describe("LinkExtractorService", () => {
         filePath: expectedAbsolutePath,
         rawLinkTarget: "./inline.md?md-link=true&md-embed=34-",
         isInline: true,
-        inlineLinesRange: { from: 34, to: "end" },
+        inlineLinesRange: { from: 33, to: "end" },
         anchorText: "inline link",
       },
     ];
@@ -344,7 +344,7 @@ describe("LinkExtractorService", () => {
         filePath: expectedAbsolutePath,
         rawLinkTarget: "./inline.md?md-link=true&md-embed=34-end",
         isInline: true,
-        inlineLinesRange: { from: 34, to: "end" },
+        inlineLinesRange: { from: 33, to: "end" },
         anchorText: "inline link",
       },
     ];
@@ -384,7 +384,10 @@ describe("LinkExtractorService", () => {
         filePath: expectedAbsolutePath,
         rawLinkTarget: "./inline.md?md-link=true&md-embed=abc-def",
         isInline: true,
-        inlineLinesRange: undefined,
+        inlineLinesRange: {
+          from: 0,
+          to: "end",
+        },
         anchorText: "inline link",
       },
     ];
@@ -467,14 +470,14 @@ describe("LinkExtractorService", () => {
         filePath: absInline1,
         rawLinkTarget: "./inline1.md?md-link=true&md-embed=10-20",
         isInline: true,
-        inlineLinesRange: { from: 10, to: 20 },
+        inlineLinesRange: { from: 9, to: 19 },
         anchorText: "Inline Link 1",
       },
       {
         filePath: absInline2,
         rawLinkTarget: "./inline2.md?md-link=1&md-embed=-5",
         isInline: true,
-        inlineLinesRange: { from: 0, to: 5 },
+        inlineLinesRange: { from: 0, to: 4 },
         anchorText: "Inline Link 2",
       },
       {
@@ -488,7 +491,7 @@ describe("LinkExtractorService", () => {
         filePath: absInline3,
         rawLinkTarget: "./inline3.md?md-link=1&md-embed=50-",
         isInline: true,
-        inlineLinesRange: { from: 50, to: "end" },
+        inlineLinesRange: { from: 49, to: "end" },
         anchorText: "Inline Link 3",
       },
     ];
@@ -571,7 +574,7 @@ describe("LinkExtractorService", () => {
         filePath: expectedAbsolutePath,
         rawLinkTarget: "./inline.md?md-embed=10-20",
         isInline: true,
-        inlineLinesRange: { from: 10, to: 20 },
+        inlineLinesRange: { from: 9, to: 19 },
         anchorText: "inline link range",
       },
     ];
@@ -655,7 +658,10 @@ describe("LinkExtractorService", () => {
         filePath: expectedAbsolutePath,
         rawLinkTarget: "./inline.md?md-embed=abc-def",
         isInline: true,
-        inlineLinesRange: undefined,
+        inlineLinesRange: {
+          from: 0,
+          to: "end",
+        },
         anchorText: "inline link",
       },
     ];
@@ -741,14 +747,14 @@ describe("LinkExtractorService", () => {
         filePath: absInline1,
         rawLinkTarget: "./inline1.md?md-embed=10-20",
         isInline: true,
-        inlineLinesRange: { from: 10, to: 20 },
+        inlineLinesRange: { from: 9, to: 19 },
         anchorText: "Inline Link 1",
       },
       {
         filePath: absInline2,
         rawLinkTarget: "./inline2.md?md-link=1&md-embed=-5",
         isInline: true,
-        inlineLinesRange: { from: 0, to: 5 },
+        inlineLinesRange: { from: 0, to: 4 },
         anchorText: "Inline Link 2",
       },
       {
@@ -762,7 +768,7 @@ describe("LinkExtractorService", () => {
         filePath: absInline3,
         rawLinkTarget: "./inline3.md?md-embed=50-",
         isInline: true,
-        inlineLinesRange: { from: 50, to: "end" },
+        inlineLinesRange: { from: 49, to: "end" },
         anchorText: "Inline Link 3",
       },
     ];

@@ -15,27 +15,27 @@ const currentLogLevel = logLevelMap[logLevel];
 export const logger = {
   log: (message: string) => {
     if (currentLogLevel <= logLevelMap.info) {
-      console.error(`[MARKDOWN-RULES-INFO] ${message}`);
+      console.error(`[MD-INFO] ${message}`);
     }
   },
   info: (message: string) => {
     if (currentLogLevel <= logLevelMap.info) {
-      console.error(`[MARKDOWN-RULES-INFO] ${message}`);
+      console.error(`[MD-INFO] ${message}`);
     }
   },
   debug: (message: string) => {
     if (currentLogLevel <= logLevelMap.debug) {
-      console.error(`[MARKDOWN-RULES-DEBUG] ${message}`);
+      console.error(`[MD-DEBUG] ${message}`);
     }
   },
   error: (message: string) => {
     if (currentLogLevel <= logLevelMap.error) {
-      console.error(`[MARKDOWN-RULES-ERROR] ${message}`);
+      console.error(`[MD-ERROR] ${message}`);
     }
   },
   warn: (message: string) => {
     if (currentLogLevel <= logLevelMap.warn) {
-      console.error(`[MARKDOWN-RULES-WARN] ${message}`);
+      console.error(`[MD-WARN] ${message}`);
     }
   },
 };

@@ -120,26 +120,51 @@ export class LinkExtractorService implements ILinkExtractorService {
     if (parts.length === 2) {
       const fromStr = parts[0];
       const toStr = parts[1];
-      const fromNum = fromStr === "" ? 0 : Number(fromStr);
-      const toNumOrEnd = toStr === "" || toStr.toLowerCase() === "end" ? "end" : Number(toStr);
 
-      if (!isNaN(fromNum) && (toNumOrEnd === "end" || !isNaN(toNumOrEnd))) {
-        if (toNumOrEnd !== "end" && fromNum > toNumOrEnd) {
-          logger.warn(
-            `Invalid lines range "${rangeString}" in 'md-embed' parameter in ${docFilePath}: start line (${fromNum}) is greater than end line (${toNumOrEnd}). Embedding whole file.`
-          );
+      // Parse 'from' to 0-based index
+      let fromIdx = 0; // Default to start of file (index 0)
+      if (fromStr !== "") {
+        const parsedFrom = Number(fromStr);
+        if (!isNaN(parsedFrom) && parsedFrom >= 1) {
+          fromIdx = parsedFrom - 1; // Convert 1-based to 0-based
         } else {
-          inlineLinesRange = {
-            from: fromNum,
-            to: toNumOrEnd as number | "end",
-          };
-          logger.debug(
-            `Parsed range from 'md-embed="${rangeString}"' in ${docFilePath}: ${inlineLinesRange.from}-${inlineLinesRange.to}`
+          logger.warn(
+            `Invalid start line "${fromStr}" in 'md-embed' range "${rangeString}" in ${docFilePath}. Using start of file.`
           );
+          // Keep fromIdx = 0
         }
+      }
+
+      // Parse 'to' to 0-based index or 'end'
+      let toIdxOrEnd: number | "end" = "end"; // Default to end of file
+      if (toStr !== "" && toStr.toLowerCase() !== "end") {
+        const parsedTo = Number(toStr);
+        if (!isNaN(parsedTo) && parsedTo >= 1) {
+          toIdxOrEnd = parsedTo - 1; // Convert 1-based to 0-based
+        } else {
+          logger.warn(
+            `Invalid end line "${toStr}" in 'md-embed' range "${rangeString}" in ${docFilePath}. Using end of file.`
+          );
+          // Keep toIdxOrEnd = 'end'
+        }
+      }
+
+      // Validate the 0-based range
+      if (
+        toIdxOrEnd !== "end" &&
+        fromIdx > toIdxOrEnd // Compare 0-based indices
+      ) {
+        logger.warn(
+          `Invalid lines range "${rangeString}" in 'md-embed' parameter in ${docFilePath}: start index (${fromIdx}) is greater than end index (${toIdxOrEnd}). Embedding whole file.`
+        );
       } else {
+        inlineLinesRange = {
+          from: fromIdx,
+          to: toIdxOrEnd,
+        };
+        // Log the parsed 0-based range
         logger.debug(
-          `Value "${rangeString}" for 'md-embed' in ${docFilePath} looks like a range but has invalid format (Expected N-M, -M, N-, N-end). Embedding whole file.`
+          `Parsed 0-based range from 'md-embed="${rangeString}"' in ${docFilePath}: ${inlineLinesRange.from}-${inlineLinesRange.to}`
         );
       }
     } else {

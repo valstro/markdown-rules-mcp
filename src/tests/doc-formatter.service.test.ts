@@ -127,7 +127,7 @@ describe("DocFormatterService", () => {
 
     it("should format a doc with an inline link with line range", async () => {
       const range: DocLinkRange = { from: 1, to: 3 };
-      const rawTarget = "./inline.md?md-link=true&md-embed=1-3";
+      const rawTarget = "./inline.md?md-link=true&md-embed=2-4";
       const linkToInline: DocLink = {
         filePath: INLINE_DOC_PATH,
         rawLinkTarget: rawTarget,
@@ -151,7 +151,7 @@ describe("DocFormatterService", () => {
       expect(mockFileSystemService.resolvePath).toHaveBeenCalledWith(DOC_A_DIR, "./inline.md");
 
       const expectedRangeContent = "Line 2\nLine 3\nLine 4";
-      const expectedInlineTag = `<inline_doc description="Inline Section" file="${INLINE_DOC_PATH}" lines="1-3">\n${expectedRangeContent}\n</inline_doc>`;
+      const expectedInlineTag = `<inline_doc description="Inline Section" file="${INLINE_DOC_PATH}" lines="2-4">\n${expectedRangeContent}\n</inline_doc>`;
       expect(result).toBe(
         `<doc type="auto" file="${DOC_A_PATH}">\n${docAContent}\n[Inline Section](${rawTarget})\n${expectedInlineTag}\n</doc>`
       );
@@ -159,7 +159,7 @@ describe("DocFormatterService", () => {
 
     it("should format a doc with an inline link with line range to 'end'", async () => {
       const range: DocLinkRange = { from: 2, to: "end" };
-      const rawTarget = "./inline.md?md-link=true&md-embed=2-end";
+      const rawTarget = "./inline.md?md-link=true&md-embed=3-end";
       const linkToInline: DocLink = {
         filePath: INLINE_DOC_PATH,
         rawLinkTarget: rawTarget,
@@ -183,7 +183,7 @@ describe("DocFormatterService", () => {
       expect(mockFileSystemService.resolvePath).toHaveBeenCalledWith(DOC_A_DIR, "./inline.md");
 
       const expectedRangeContent = "Line 3\nLine 4\nLine 5";
-      const expectedInlineTag = `<inline_doc description="Inline From Line 3" file="${INLINE_DOC_PATH}" lines="2-end">\n${expectedRangeContent}\n</inline_doc>`;
+      const expectedInlineTag = `<inline_doc description="Inline From Line 3" file="${INLINE_DOC_PATH}" lines="3-end">\n${expectedRangeContent}\n</inline_doc>`;
       expect(result).toBe(
         `<doc type="auto" file="${DOC_A_PATH}">\n${docAContent}\n[Inline From Line 3](${rawTarget})\n${expectedInlineTag}\n</doc>`
       );
@@ -251,7 +251,7 @@ describe("DocFormatterService", () => {
       const inlineDoc2 = createMockDoc(inlineDoc2Path, { content: inlineDoc2Content });
 
       const rawTarget1 = "./inline1.md?md-link=true&md-embed=true";
-      const rawTarget2 = "./inline2.md?md-link=true&md-embed=0-0";
+      const rawTarget2 = "./inline2.md?md-link=true&md-embed=1-1";
 
       const link1: DocLink = {
         filePath: inlineDoc1Path,
@@ -289,7 +289,7 @@ describe("DocFormatterService", () => {
       const result = await docFormatterService.formatDoc(item);
 
       const expectedInlineTag1 = `<inline_doc description="Link 1" file="${inlineDoc1Path}">\n${inlineDoc1Content}\n</inline_doc>`;
-      const expectedInlineTag2 = `<inline_doc description="Link 2" file="${inlineDoc2Path}" lines="0-0">\n${inlineDoc2Content.split("\n")[0]}\n</inline_doc>`;
+      const expectedInlineTag2 = `<inline_doc description="Link 2" file="${inlineDoc2Path}" lines="1-1">\n${inlineDoc2Content.split("\n")[0]}\n</inline_doc>`;
 
       const expectedFinalContent = `Some text before.\n[Link 1](${rawTarget1})\n${expectedInlineTag1}\nSome text between.\n[Link 2](${rawTarget2})\n${expectedInlineTag2}\nSome text after.`;
 
@@ -382,10 +382,10 @@ describe("DocFormatterService", () => {
       return docFormatterService.formatRange(range);
     };
     it("should format from-to range", () => {
-      expect(formatRange({ from: 10, to: 20 })).toBe("10-20");
+      expect(formatRange({ from: 9, to: 19 })).toBe("10-20");
     });
     it("should format from-end range", () => {
-      expect(formatRange({ from: 5, to: "end" })).toBe("5-end");
+      expect(formatRange({ from: 4, to: "end" })).toBe("5-end");
     });
   });
 });

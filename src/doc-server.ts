@@ -2,8 +2,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { logger } from "./logger.js";
-import { Doc, IDocContextService, IDocIndexService } from "./types.js";
+import { Doc, IDocContextService, IDocIndexService, IFileSystemService } from "./types.js";
 import { z } from "zod";
+import { config } from "./config.js";
 
 /**
  * Markdown Rules MCP Server
@@ -22,6 +23,7 @@ export class MarkdownRulesServer {
   private server: McpServer;
 
   constructor(
+    private fileSystem: IFileSystemService,
     private docIndex: IDocIndexService,
     private docsContextService: IDocContextService
   ) {
@@ -59,8 +61,44 @@ export class MarkdownRulesServer {
           relevantDocsByDescription
         );
 
+        const content: { type: "text"; text: string }[] = [];
+
+        if (config.LOG_LEVEL === "debug") {
+          content.push({
+            type: "text",
+            text: `CONFIG: ${JSON.stringify(config, null, 2)}`,
+          });
+
+          content.push({
+            type: "text",
+            text: `AGENT ATTACHABLE DOCS: ${JSON.stringify(
+              this.docIndex.getAgentAttachableDocs(),
+              null,
+              2
+            )}`,
+          });
+
+          content.push({
+            type: "text",
+            text: `DOCS: ${JSON.stringify(
+              this.docIndex.docs.map((doc) => ({
+                filePath: this.fileSystem.getRelativePath(doc.filePath),
+                description: doc.meta.description,
+                linksTo: doc.linksTo.map((link) => this.fileSystem.getRelativePath(link.filePath)),
+              })),
+              null,
+              2
+            )}`,
+          });
+        }
+
+        content.push({
+          type: "text",
+          text,
+        });
+
         return {
-          content: [{ type: "text", text }],
+          content,
         };
       }
     );

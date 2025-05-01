@@ -124,6 +124,9 @@ export class DocFormatterService implements IDocFormatterService {
   }
 
   private formatRange(range: DocLinkRange): string {
-    return `${range.from}-${range.to}`;
+    // Convert 0-based indices back to 1-based for display
+    const displayFrom = range.from + 1;
+    const displayTo = range.to === "end" ? "end" : range.to + 1;
+    return `${displayFrom}-${displayTo}`;
   }
 }

@@ -175,10 +175,28 @@ export class DocContextService implements IDocContextService {
     return this.docFormatterService.formatContextOutput(contextItems);
   }
 
+  /**
+   * Sorts context items based on type, path, and hoisting rules.
+   *
+   * Behavior:
+   * 1. Non-related items are sorted primarily by type priority (always, auto, agent, manual)
+   *    and secondarily by file path alphabetically.
+   * 2. Related items are handled based on the `HOIST_CONTEXT` configuration:
+   *    - If true (default): A related item is placed immediately *before* the first non-related item
+   *      (in the sorted order) that links to it. If an item is linked by multiple non-related items,
+   *      it's placed before the one that appears earliest in the sorted non-related list.
+   *    - If false: A related item is placed immediately *after* the first non-related item
+   *      (in the sorted order) that links to it.
+   * 3. Related items linked only by other related items, or whose linkers are not included
+   *    in the final list (orphans), are appended to the very end, sorted alphabetically by path.
+   * 4. Multiple related items linked by the same non-related item are sorted alphabetically by path
+   *    relative to each other.
+   *
+   * @param items The list of ContextItem objects to sort.
+   * @returns A new array containing the sorted ContextItem objects.
+   */
   private sortItems(items: ContextItem[]): ContextItem[] {
-    // TODO: Get HOIST_CONTEXT from config. Assuming false for now.
-    // Replace with: const hoistContext = this.config.HOIST_CONTEXT;
-    const hoistContext = this.config.HOIST_CONTEXT ?? false; // Default to false if undefined
+    const hoistContext = this.config.HOIST_CONTEXT ?? true; // Default to true
 
     const relatedItems = items.filter((item) => item.type === "related");
     const nonRelatedItems = items.filter((item) => item.type !== "related");
@@ -192,106 +210,155 @@ export class DocContextService implements IDocContextService {
       return a.doc.filePath.localeCompare(b.doc.filePath);
     });
 
-    // 2. Group related items by the path of the item that linked to them
-    const relatedByLinker = new Map<string, ContextItem[]>();
-    const orphanRelatedItems: ContextItem[] = []; // Items whose linker isn't in nonRelatedItems
+    // 2. Group related items by *all* their non-related linkers and identify orphans
+    const relatedLinkers = new Map<string, string[]>(); // Map: relatedPath -> [linkerPath1, linkerPath2]
+    const relatedItemsMap = new Map<string, ContextItem>(); // Map: relatedPath -> ContextItem
+    relatedItems.forEach((item) => relatedItemsMap.set(item.doc.filePath, item));
 
-    for (const item of relatedItems) {
-      const linkerPath = item.linkedFromPath;
-      if (linkerPath && items.some((i) => i.doc.filePath === linkerPath && i.type !== "related")) {
-        // Check if linker exists and is non-related
-        if (!relatedByLinker.has(linkerPath)) {
-          relatedByLinker.set(linkerPath, []);
+    const orphanRelatedItems: ContextItem[] = [];
+
+    for (const relatedItem of relatedItems) {
+      let hasNonRelatedLinker = false;
+      for (const potentialLinker of items) {
+        // Check if potentialLinker is non-related and links to relatedItem
+        if (
+          potentialLinker.type !== "related" &&
+          potentialLinker.doc.linksTo.some((link) => link.filePath === relatedItem.doc.filePath)
+        ) {
+          const relatedPath = relatedItem.doc.filePath;
+          if (!relatedLinkers.has(relatedPath)) {
+            relatedLinkers.set(relatedPath, []);
+          }
+          relatedLinkers.get(relatedPath)!.push(potentialLinker.doc.filePath);
+          hasNonRelatedLinker = true;
         }
-        relatedByLinker.get(linkerPath)!.push(item);
-      } else {
-        // This might happen if a related item was linked from another related item,
-        // or if the linking item itself wasn't included for some reason.
+      }
+      if (!hasNonRelatedLinker) {
         logger.warn(
-          `Related item ${item.doc.filePath} has missing or non-primary linker path: ${linkerPath}. Treating as orphan.`
+          `Related item ${relatedItem.doc.filePath} has no non-related linkers in the current context. Treating as orphan.`
         );
-        orphanRelatedItems.push(item);
+        orphanRelatedItems.push(relatedItem);
       }
     }
-
-    // 3. Sort related items within each group alphabetically by path
-    for (const relatedGroup of relatedByLinker.values()) {
-      relatedGroup.sort((a, b) => a.doc.filePath.localeCompare(b.doc.filePath));
-    }
-    // Sort orphan items as well
+    // Sort orphans alphabetically
     orphanRelatedItems.sort((a, b) => a.doc.filePath.localeCompare(b.doc.filePath));
 
-    // 4. Construct the final list, placing related items relative to their linker
+    // 3. Construct final list based on hoistContext
     const finalSortedItems: ContextItem[] = [];
-    const addedRelated = new Set<string>(); // Keep track of related items already added
+    const placedRelatedPaths = new Set<string>(); // Keep track of placed related docs
 
-    for (const nonRelatedItem of nonRelatedItems) {
-      const linkerPath = nonRelatedItem.doc.filePath;
-      const relatedGroup = relatedByLinker.get(linkerPath) ?? [];
-      const itemsToPlace = relatedGroup.filter((item) => !addedRelated.has(item.doc.filePath));
+    // Create a map for quick lookup of related items to insert before/after a non-related item
+    const itemsToInsertByLinker = new Map<string, ContextItem[]>(); // Map: linkerPath -> [relatedItem1, relatedItem2]
 
-      if (itemsToPlace.length > 0) {
-        if (hoistContext) {
-          finalSortedItems.push(...itemsToPlace);
-          itemsToPlace.forEach((item) => addedRelated.add(item.doc.filePath));
+    for (const [relatedPath, linkerPaths] of relatedLinkers.entries()) {
+      const relatedItem = relatedItemsMap.get(relatedPath);
+      if (!relatedItem) continue; // Should not happen
+
+      // Find the first non-related item in the sorted list that links to this related item
+      let firstLinkerPath: string | undefined = undefined;
+      for (const nrItem of nonRelatedItems) {
+        if (linkerPaths.includes(nrItem.doc.filePath)) {
+          firstLinkerPath = nrItem.doc.filePath;
+          break;
         }
       }
 
-      finalSortedItems.push(nonRelatedItem); // Add the non-related item
+      if (firstLinkerPath) {
+        if (!itemsToInsertByLinker.has(firstLinkerPath)) {
+          itemsToInsertByLinker.set(firstLinkerPath, []);
+        }
+        itemsToInsertByLinker.get(firstLinkerPath)!.push(relatedItem);
+      } else {
+        // This case might happen if linkers exist but are not in the final nonRelatedItems list (e.g. filtered out previously)
+        // Treat as orphan for placement purposes
+        logger.warn(
+          `Could not find first linker for related item ${relatedPath} among sorted non-related items. Treating as orphan for placement.`
+        );
+        if (!orphanRelatedItems.some((orphan) => orphan.doc.filePath === relatedPath)) {
+          orphanRelatedItems.push(relatedItem);
+          // Re-sort orphans just in case
+          orphanRelatedItems.sort((a, b) => a.doc.filePath.localeCompare(b.doc.filePath));
+        }
+      }
+    }
 
-      if (itemsToPlace.length > 0) {
-        if (!hoistContext) {
-          finalSortedItems.push(...itemsToPlace);
-          itemsToPlace.forEach((item) => addedRelated.add(item.doc.filePath));
+    // Sort related items associated with each linker alphabetically
+    for (const relatedGroup of itemsToInsertByLinker.values()) {
+      relatedGroup.sort((a, b) => a.doc.filePath.localeCompare(b.doc.filePath));
+    }
+
+    // 4. Assemble the final list
+    for (const nonRelatedItem of nonRelatedItems) {
+      const linkerPath = nonRelatedItem.doc.filePath;
+      const relatedGroupToInsert = itemsToInsertByLinker.get(linkerPath) ?? [];
+
+      // Hoist: Place related items *before* their first non-related linker
+      if (hoistContext) {
+        for (const relatedItem of relatedGroupToInsert) {
+          if (!placedRelatedPaths.has(relatedItem.doc.filePath)) {
+            logger.debug(
+              `Hoisting related item ${relatedItem.doc.filePath} before linker ${linkerPath}`
+            );
+            finalSortedItems.push(relatedItem);
+            placedRelatedPaths.add(relatedItem.doc.filePath);
+          }
+        }
+      }
+
+      // Add the non-related item itself
+      finalSortedItems.push(nonRelatedItem);
+
+      // No Hoist: Place related items *after* their first non-related linker
+      if (!hoistContext) {
+        for (const relatedItem of relatedGroupToInsert) {
+          if (!placedRelatedPaths.has(relatedItem.doc.filePath)) {
+            logger.debug(
+              `Placing related item ${relatedItem.doc.filePath} after linker ${linkerPath}`
+            );
+            finalSortedItems.push(relatedItem);
+            placedRelatedPaths.add(relatedItem.doc.filePath);
+          }
         }
       }
     }
 
     // 5. Append any orphan related items at the end
-    if (orphanRelatedItems.length > 0) {
-      logger.warn(`Appending ${orphanRelatedItems.length} orphan related items to the end.`);
-      finalSortedItems.push(...orphanRelatedItems);
-      orphanRelatedItems.forEach((item) => addedRelated.add(item.doc.filePath)); // Mark as added
+    for (const orphan of orphanRelatedItems) {
+      if (!placedRelatedPaths.has(orphan.doc.filePath)) {
+        logger.warn(`Appending orphan related item ${orphan.doc.filePath} to the end.`);
+        finalSortedItems.push(orphan);
+        placedRelatedPaths.add(orphan.doc.filePath);
+      }
     }
 
-    // 6. Sanity check: Ensure all original items are present
+    // 6. Sanity checks (optional)
     if (finalSortedItems.length !== items.length) {
       logger.error(
-        `Sorting resulted in item count mismatch! Original: ${items.length}, Sorted: ${finalSortedItems.length}. Dumping details.`
+        `Sorting resulted in item count mismatch! Original: ${items.length}, Sorted: ${finalSortedItems.length}.`
       );
-      // Add more detailed logging if necessary
+      // Log details about missing/extra items
       const originalPaths = new Set(items.map((i) => i.doc.filePath));
       const finalPaths = new Set(finalSortedItems.map((i) => i.doc.filePath));
       items.forEach((item) => {
-        if (!finalPaths.has(item.doc.filePath)) {
-          logger.error(
-            `Missing item after sort: ${item.doc.filePath} (type: ${item.type}, linkedFrom: ${item.linkedFromPath})`
-          );
-        }
+        if (!finalPaths.has(item.doc.filePath))
+          logger.error(`Missing item: ${item.doc.filePath} (type: ${item.type})`);
       });
       finalSortedItems.forEach((item) => {
-        if (!originalPaths.has(item.doc.filePath)) {
-          logger.error(
-            `Extra item after sort: ${item.doc.filePath} (type: ${item.type}, linkedFrom: ${item.linkedFromPath})`
-          );
-        }
+        if (!originalPaths.has(item.doc.filePath))
+          logger.error(`Extra item: ${item.doc.filePath} (type: ${item.type})`);
       });
-      // As a fallback, return the original unsorted list if counts don't match
-      // return items; // Or throw an error
     }
-
-    // Check if any related items were somehow missed (e.g., linked from a related item not handled as orphan)
-    const allAddedRelatedCount =
-      Array.from(relatedByLinker.values()).flat().length + orphanRelatedItems.length;
-    if (relatedItems.length !== allAddedRelatedCount) {
-      const missedRelated = relatedItems.filter((item) => !addedRelated.has(item.doc.filePath));
-      if (missedRelated.length > 0) {
-        logger.warn(
-          `Found ${missedRelated.length} related items that were not placed. Appending them now.`
-        );
-        missedRelated.sort((a, b) => a.doc.filePath.localeCompare(b.doc.filePath));
-        finalSortedItems.push(...missedRelated);
-      }
+    const allFoundRelatedCount = placedRelatedPaths.size;
+    if (relatedItems.length !== allFoundRelatedCount) {
+      logger.warn(
+        `Mismatch in related item count. Expected ${relatedItems.length}, placed ${allFoundRelatedCount}. Some related items might be unlinked, orphaned, or linked incorrectly.`
+      );
+      const missedRelated = relatedItems.filter(
+        (item) => !placedRelatedPaths.has(item.doc.filePath)
+      );
+      missedRelated.forEach((item) =>
+        logger.warn(`-> Unplaced related item: ${item.doc.filePath}`)
+      );
     }
 
     return finalSortedItems;

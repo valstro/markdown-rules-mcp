@@ -22,4 +22,4 @@ PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$PROJECT_ROOT"
 
 # Run the server with debugger disabled
-NODE_OPTIONS=--no-inspect node build/index.js
+LOG_LEVEL=debug MARKDOWN_GLOB_PATTERN=./docs/**/*.md DEBUG_CONTEXT=true node build/index.js
