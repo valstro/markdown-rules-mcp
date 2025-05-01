@@ -1,5 +1,5 @@
 import { vi, Mocked } from "vitest";
-import { IDocIndexService, Doc } from "./types.js";
+import { IDocIndexService, Doc } from "../../types.js";
 
 export function createMockDocIndexService(): Mocked<IDocIndexService> {
   return {
@@ -28,27 +28,3 @@ export function createMockDoc(filePath: string, options: Partial<Doc> = {}): Doc
     errorReason: errorReason !== undefined ? errorReason : isError ? "Mock Error" : undefined,
   };
 }
-
-/*
-
-function createMockDoc(filePath: string, options: Partial<Doc> = {}): Doc {
-  const {
-    content = "",
-    linksTo = [],
-    isMarkdown = true,
-    isError = false,
-    errorReason,
-    meta = { description: undefined, globs: [], alwaysApply: false },
-  } = options;
-  return {
-    filePath,
-    content,
-    linksTo,
-    isMarkdown,
-    isError,
-    errorReason: errorReason !== undefined ? errorReason : isError ? "Mock Error" : undefined,
-    contentLinesBeforeParsed: content.split("\n").length,
-    meta,
-  };
-}
-  */

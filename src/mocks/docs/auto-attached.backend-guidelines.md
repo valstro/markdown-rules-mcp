@@ -8,4 +8,4 @@ alwaysApply: false
 
 ...
 
-For database setup instructions, see [Database Setup](agent-attached.database-setup.md?mdr-include=1).
+For database setup instructions, see [Database Setup](agent-attached.database-setup.md?md-link=1).

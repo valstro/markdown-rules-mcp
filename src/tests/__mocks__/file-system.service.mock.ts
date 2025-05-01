@@ -1,5 +1,5 @@
 import { vi, Mocked } from "vitest";
-import { IFileSystemService } from "./types.js";
+import { IFileSystemService } from "../../types.js";
 
 export function createMockFileSystemService(): Mocked<IFileSystemService> {
   return {

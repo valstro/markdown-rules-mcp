@@ -5,7 +5,7 @@ A Model Context Protocol (MCP) server that provides a portable and enhanced alte
 **Why is this useful?**
 
 *   **Portability:** Future-proof your project's crucial context and documentation. Define it once in Markdown and use it with any AI tool supporting MCP, avoiding vendor lock-in.
-*   **Enhanced Context Control:** Go beyond simple file linking. Use inline includes with specific line ranges (e.g. `[Link Text](./path/to/snippet.txt?mdr-include=true&mdr-inline=true&mdr-lines=50-100)`) to precisely inject relevant code snippets or documentation sections, optimizing context size and relevance.
+*   **Enhanced Context Control:** Go beyond simple file linking. Use inline embeds with specific line ranges (e.g. `[Link Text](./path/to/snippet.txt?md-embed=50-100)`) to precisely inject relevant code snippets or documentation sections, optimizing context size and relevance.
 *   **Reliable Context for Complex Projects:** Ensure the AI agent receives the necessary context, especially for large codebases or projects with specific frameworks. The server can traverse includes, guaranteeing that linked dependencies and critical information are provided, overcoming the potential unreliability of agents merely *following* links.
 
 ## Prerequisites 📋
@@ -84,13 +84,13 @@ npx -y @smithery/cli install markdown-rules-mcp --client cursor
     *   **Auto Attached:** Define `globs` in the frontmatter. These docs are included if an attached file matches the pattern.
     *   **Agent Requested:** Define a `description` but leave `alwaysApply` as `false` (or omit it) and do not specify `globs`. These docs can be selected by the AI agent via the `get_relevant_docs` tool based on their description matching the user's query.
 
-4.  **Attach other docs & files via links:** Use standard Markdown links, but add the `mdr-include=true` query parameter to the URL to signal that the linked file should be included in the context if the linking document is included. The server will traverse these links recursively.
-    *   Syntax: `[Link Text](./path/to/file.ext?mdr-include=true)`
+4.  **Attach other docs & files via links:** Use standard Markdown links, but add the `md-link=true` query parameter to the URL to signal that the linked file should be included in the context if the linking document is included. The server will traverse these links recursively.
+    *   Syntax: `[Link Text](./path/to/file.ext?md-link=true)`
     *   Linked Markdown files are included as `<doc>` tags.
     *   Linked non-Markdown files (e.g., code, config) are included as `<file>` tags, containing their raw content.
 
-5.  **Include specific context inline via links:** To embed specific parts of another file directly within the current document's context, use the `mdr-inline=true` parameter along with `mdr-include=true`. You can specify line ranges using `mdr-lines`.
-    *   Syntax: `[Link Text](./path/to/snippet.txt?mdr-include=true&mdr-inline=true&mdr-lines=START-END)`
+5.  **Include specific context inline via links:** To embed specific parts of another file directly within the current document's context, use the `md-embed=true` parameter along with `md-link=true`. You can specify line ranges using `mdr-lines`.
+    *   Syntax: `[Link Text](./path/to/snippet.txt?md-embed=START-END)`
     *   `mdr-lines` Formats:
         *   `N-M`: Lines N to M (inclusive, 0-indexed).
         *   `N-` or `N-end`: Lines N to the end of the file.
@@ -101,13 +101,13 @@ npx -y @smithery/cli install markdown-rules-mcp --client cursor
 6.  **How it works:**
     *   The server scans your project for markdown files matching the `MARKDOWN_GLOB_PATTERN` (defined in Cursor settings).
     *   It parses the frontmatter and content of these initial files.
-    *   It follows any `mdr-include=true` links, reading and parsing the linked files (Markdown or other types).
+    *   It follows any `md-link=true` links, reading and parsing the linked files (Markdown or other types).
     *   This process repeats recursively, building a complete graph of linked documents and files.
     *   When the `get_relevant_docs` tool is called (e.g., at the start of a chat or when files are attached), the server determines the final context:
         *   It includes all `alwaysApply: true` documents.
         *   It includes documents whose `globs` match any currently attached files.
         *   It includes documents selected by the agent via the `relevantDocsByDescription` parameter.
-        *   It includes any documents or files linked (`mdr-include=true`) by the already included documents (recursively).
+        *   It includes any documents or files linked (`md-link=true`) by the already included documents (recursively).
         *   It formats the selected documents/files into XML (`<doc>`, `<file>`), expanding any inline links (`<inline_doc>`) as it goes.
     *   The final context is sent back to the AI agent.
 7.  **Config:**
@@ -129,9 +129,9 @@ alwaysApply: true
 
 This document covers the main goals and setup instructions.
 
-See the [Core Utilities](./src/utils.ts?mdr-include=true) for essential functions.
+See the [Core Utilities](./src/utils.ts?md-link=true) for essential functions.
 
-For configuration details, refer to this section: [Config Example](./config.json?mdr-include=true&mdr-inline=true&mdr-lines=1-3)
+For configuration details, refer to this section: [Config Example](./config.json?md-embed=1-3)
 ```
 
 **`src/utils.ts`:**
@@ -181,9 +181,9 @@ export function helperB() {
 
 This document covers the main goals and setup instructions.
 
-See the [Core Utilities](./src/utils.ts?mdr-include=true) for essential functions.
+See the [Core Utilities](./src/utils.ts?md-link=true) for essential functions.
 
-For configuration details, refer to this section: [Config Example](./config.json?mdr-include=true&mdr-inline=true&mdr-lines=1-3)
+For configuration details, refer to this section: [Config Example](./config.json?md-embed=1-3)
 <inline_doc description="Config Example" file="config.json" lines="1-3">
   "apiKey": "YOUR_API_KEY",
   "timeout": 5000,
@@ -200,9 +200,9 @@ For configuration details, refer to this section: [Config Example](./config.json
 
 This document covers the main goals and setup instructions.
 
-See the [Core Utilities](./src/utils.ts?mdr-include=true) for essential functions.
+See the [Core Utilities](./src/utils.ts?md-link=true) for essential functions.
 
-For configuration details, refer to this section: [Config Example](./config.json?mdr-include=true&mdr-inline=true&mdr-lines=1-3)
+For configuration details, refer to this section: [Config Example](./config.json?md-embed=1-3)
 <inline_doc description="Config Example" file="config.json" lines="1-3">
   "apiKey": "YOUR_API_KEY",
   "timeout": 5000,

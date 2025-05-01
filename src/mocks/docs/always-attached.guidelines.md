@@ -9,8 +9,8 @@ This document outlines our core development standards that apply to all projects
 
 # Scripts
 
-Here are some scripts that are available [scripts](../files/package.json?mdr-include=true&mdr-inline=true&mdr-lines=6-9) to use in the project.
+Here are some scripts that are available [scripts](../files/package.json?md-link=true&md-embed=6-9) to use in the project.
 
 # Security Guidelines
 
-[Security Guidelines](manually-attached.security-guidelines.md?mdr-include=true)
+[Security Guidelines](manually-attached.security-guidelines.md?md-link=true)

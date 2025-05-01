@@ -9,22 +9,35 @@ import { FileSystemService } from "./file-system.service.js";
  * @remarks
  * This service is responsible for extracting links from a markdown document.
  * It uses a regular expression to find markdown links like [text](path).
- * It then converts the relative path to an absolute path using the file system service.
- * It also handles potential HTML entities like &amp; before parsing.
- * It supports query parameters `include`, `inline`, and `lines` for specific link behaviors.
+ * Links intended for processing by this tool must either include the `md-link=true` (or `md-link=1`)
+ * query parameter or the `md-embed` query parameter (unless `md-embed` is explicitly 'false').
+ * A link with `md-embed` is implicitly considered a link to be processed.
+ *
+ * Embedding behavior is controlled by the `md-embed` query parameter:
+ * - If `md-embed` is absent or set to `false`, the link is processed (only if `md-link=true` is present) but *not* marked for embedding (`isInline: false`), and no range is parsed.
+ * - If `md-embed` is present and not `false` (e.g., `md-embed=true`), the link is processed and embedded (`isInline: true`) without a specific line range (`inlineLinesRange: undefined`).
+ * - If the value of `md-embed` is a range (e.g., `10-20`, `10-`, `-20`, `10-end`),
+ *   the link is processed and only that specific line range of the target document is embedded.
+ *
+ * It converts the relative path to an absolute path using the file system service
+ * and handles potential HTML entities like &amp; before parsing.
  *
  * @example
  * ```typescript
  * const linkExtractor = new LinkExtractorService(fileSystem);
  * const links = linkExtractor.extractLinks(docFilePath, docContent);
- * // Example link: [Include this](./some/doc.md?include=true&inline=true&lines=10-20)
+ * // Example link: [Include this](./some/doc.md?md-link=true&md-embed=10-20) // Linked & Embedded (range)
+ * // Example link: [Include this too](./some/doc.md?md-embed=10-20) // Linked & Embedded (range)
+ * // Example link: [Include all](./another/doc.md?md-link=true&md-embed=true) // Linked & Embedded (all)
+ * // Example link: [Include all too](./another/doc.md?md-embed=true) // Linked & Embedded (all)
+ * // Example link: [Reference only](./ref.md?md-link=true) // Linked, Not Embedded
+ * // Example link: [Reference only, explicit](./ref.md?md-link=true&md-embed=false) // Linked, Not Embedded
+ * // Example link: [Ignored](./ref.md?md-embed=false) // Not Linked, Not Embedded
  * ```
  */
 export class LinkExtractorService implements ILinkExtractorService {
-  static readonly INCLUDE_PARAM = "mdr-include";
-  static readonly INLINE_PARAM = "mdr-inline";
-  static readonly LINES_PARAM = "mdr-lines";
-
+  static readonly LINK_PARAM = "md-link";
+  static readonly EMBED_PARAM = "md-embed";
   constructor(private fileSystem: IFileSystemService) {}
 
   extractLinks(docFilePath: string, docContent: string): DocLink[] {
@@ -41,15 +54,19 @@ export class LinkExtractorService implements ILinkExtractorService {
       const cleanedRelativePath = relativePath.replace(/&amp;/g, "&");
 
       try {
-        const url = new URL(cleanedLinkTarget, "file:///"); // Dummy base
+        const url = new URL(cleanedLinkTarget, "file:///");
 
-        if (this.isParamTruthy(url, LinkExtractorService.INCLUDE_PARAM)) {
-          const { isInline, inlineLinesRange } = this.parseInlineAndRange(url, docFilePath);
+        const shouldProcessLink =
+          this.isParamTruthy(url, LinkExtractorService.LINK_PARAM) ||
+          this.isEmbedParamPresentAndNotFalse(url);
+
+        if (shouldProcessLink) {
+          const { isInline, inlineLinesRange } = this.parseEmbedParameter(url, docFilePath);
 
           const absolutePath = this.fileSystem.resolvePath(sourceDir, cleanedRelativePath);
 
           logger.debug(
-            `Found link: Anchor='${anchorText}', Target='${linkTarget}', RelativePath='${cleanedRelativePath}', AbsolutePath='${absolutePath}', SourceDir='${sourceDir}', Inline=${isInline}, Range=${
+            `Found link: Anchor='${anchorText}', Target='${linkTarget}', RelativePath='${cleanedRelativePath}', AbsolutePath='${absolutePath}', SourceDir='${sourceDir}', Embed=${isInline}, Range=${
               inlineLinesRange ? `${inlineLinesRange.from}-${inlineLinesRange.to}` : "N/A"
             }`
           );
@@ -77,49 +94,58 @@ export class LinkExtractorService implements ILinkExtractorService {
   }
 
   /**
-   * Parses the 'inline' and 'lines' query parameters from a URL.
+   * Parses the 'md-embed' query parameter to determine embedding status and line range.
    *
    * @param url - The URL object containing the query parameters.
    * @param docFilePath - The path of the document containing the link (for logging).
    * @returns An object with `isInline` (boolean) and `inlineLinesRange` (DocLinkRange | undefined).
+   *          `isInline` is true if `md-embed` is present and not 'false'.
+   *          `inlineLinesRange` is populated if `md-embed`'s value is a valid range format.
    */
-  private parseInlineAndRange(
+  private parseEmbedParameter(
     url: URL,
     docFilePath: string
   ): { isInline: boolean; inlineLinesRange: DocLinkRange | undefined } {
-    const isInline = this.isParamTruthy(url, LinkExtractorService.INLINE_PARAM);
-    const linesParam = url.searchParams.get(LinkExtractorService.LINES_PARAM);
+    const embedParamValue = url.searchParams.get(LinkExtractorService.EMBED_PARAM);
+    const isInline = this.isEmbedParamPresentAndNotFalse(url);
+
+    if (!isInline || embedParamValue === null) {
+      return { isInline: false, inlineLinesRange: undefined };
+    }
+
     let inlineLinesRange: DocLinkRange | undefined;
+    const rangeString = embedParamValue;
 
-    if (isInline && linesParam) {
-      const parts = linesParam.split("-");
-      if (parts.length === 2) {
-        const fromStr = parts[0];
-        const toStr = parts[1];
-        const fromNum = fromStr === "" ? 0 : Number(fromStr);
-        const toNumOrEnd = toStr === "" || toStr.toLowerCase() === "end" ? "end" : Number(toStr);
+    const parts = rangeString.split("-");
+    if (parts.length === 2) {
+      const fromStr = parts[0];
+      const toStr = parts[1];
+      const fromNum = fromStr === "" ? 0 : Number(fromStr);
+      const toNumOrEnd = toStr === "" || toStr.toLowerCase() === "end" ? "end" : Number(toStr);
 
-        if (!isNaN(fromNum) && (toNumOrEnd === "end" || !isNaN(toNumOrEnd))) {
-          if (toNumOrEnd !== "end" && fromNum > toNumOrEnd) {
-            logger.warn(
-              `Invalid lines range "${linesParam}" in ${docFilePath}: start line (${fromNum}) is greater than end line (${toNumOrEnd}). Ignoring range.`
-            );
-          } else {
-            inlineLinesRange = {
-              from: fromNum,
-              to: toNumOrEnd as number | "end",
-            };
-          }
-        } else {
+      if (!isNaN(fromNum) && (toNumOrEnd === "end" || !isNaN(toNumOrEnd))) {
+        if (toNumOrEnd !== "end" && fromNum > toNumOrEnd) {
           logger.warn(
-            `Invalid lines format "${linesParam}" in ${docFilePath}. Expected N-M, -M, N-, or N-end. Ignoring range.`
+            `Invalid lines range "${rangeString}" in 'md-embed' parameter in ${docFilePath}: start line (${fromNum}) is greater than end line (${toNumOrEnd}). Embedding whole file.`
+          );
+        } else {
+          inlineLinesRange = {
+            from: fromNum,
+            to: toNumOrEnd as number | "end",
+          };
+          logger.debug(
+            `Parsed range from 'md-embed="${rangeString}"' in ${docFilePath}: ${inlineLinesRange.from}-${inlineLinesRange.to}`
           );
         }
       } else {
-        logger.warn(
-          `Invalid lines format "${linesParam}" in ${docFilePath}. Expected format with one hyphen '-'. Ignoring range.`
+        logger.debug(
+          `Value "${rangeString}" for 'md-embed' in ${docFilePath} looks like a range but has invalid format (Expected N-M, -M, N-, N-end). Embedding whole file.`
         );
       }
+    } else {
+      logger.debug(
+        `Value "${rangeString}" for 'md-embed' in ${docFilePath} is not a range format. Embedding whole file.`
+      );
     }
 
     return { isInline, inlineLinesRange };
@@ -127,13 +153,25 @@ export class LinkExtractorService implements ILinkExtractorService {
 
   /**
    * Checks if a URL query parameter has a truthy value ('true' or '1').
+   * Used specifically for the `md-link` parameter.
    *
    * @param url - The URL object.
    * @param param - The name of the query parameter.
    * @returns True if the parameter exists and is 'true' or '1', false otherwise.
    */
-  isParamTruthy(url: URL, param: string): boolean {
+  private isParamTruthy(url: URL, param: string): boolean {
     const paramValue = url.searchParams.get(param);
     return paramValue !== null && (paramValue === "true" || paramValue === "1");
+  }
+
+  /**
+   * Checks if the 'md-embed' parameter is present and its value is not 'false'.
+   *
+   * @param url - The URL object.
+   * @returns True if 'md-embed' exists and is not 'false' (case-insensitive), false otherwise.
+   */
+  private isEmbedParamPresentAndNotFalse(url: URL): boolean {
+    const embedParamValue = url.searchParams.get(LinkExtractorService.EMBED_PARAM);
+    return embedParamValue !== null && embedParamValue.toLowerCase() !== "false";
   }
 }

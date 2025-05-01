@@ -8,4 +8,4 @@ alwaysApply: false
 
 Stories:
 
-- [Frontend Story](manually-attached.frontend-story.md?mdr-include=true)
+- [Frontend Story](manually-attached.frontend-story.md?md-link=true)

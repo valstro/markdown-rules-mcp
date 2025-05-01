@@ -2,15 +2,15 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import fs from "fs/promises";
 import path from "path";
 import os from "os";
-import { DocContextService } from "./doc-context.service.js";
-import { DocIndexService } from "./doc-index.service.js";
-import { DocParserService } from "./doc-parser.service.js";
-import { LinkExtractorService } from "./link-extractor.service.js";
-import { FileSystemService } from "./file-system.service.js";
-import { DocFormatterService } from "./doc-formatter.service.js";
-import { Config } from "./config.js";
-import { IDocIndexService } from "./types.js"; // Import necessary types if needed later
-import { createConfigMock } from "./config.mock.js";
+import { DocContextService } from "../doc-context.service.js";
+import { DocIndexService } from "../doc-index.service.js";
+import { DocParserService } from "../doc-parser.service.js";
+import { LinkExtractorService } from "../link-extractor.service.js";
+import { FileSystemService } from "../file-system.service.js";
+import { DocFormatterService } from "../doc-formatter.service.js";
+import { Config } from "../config.js";
+import { IDocIndexService } from "../types.js"; // Import necessary types if needed later
+import { createConfigMock } from "./__mocks__/config.mock.js";
 
 describe("DocContextService Integration Tests", () => {
   let tempDir: string;
@@ -80,7 +80,7 @@ description: Always Included
 alwaysApply: true
 ---
 This doc is always present.
-It links to [Related Doc](./related.md?mdr-include=true).`
+It links to [Related Doc](./related.md?md-link=true).`
     );
 
     await fs.writeFile(
@@ -90,7 +90,7 @@ description: Auto TS Inclusion
 globs: ["**/*.ts"]
 ---
 This doc applies to TypeScript files.
-It has an inline link: [Inline Target Section](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=1-2)`
+It has an inline link: [Inline Target Section](./inline-target.md?md-embed=1-2)`
     );
 
     await fs.writeFile(
@@ -100,7 +100,7 @@ description: Agent Triggered Doc
 ---
 This doc is triggered by the agent description match.
 
-and is related to [Related Doc 2](./related2.md?mdr-include=true).`
+and is related to [Related Doc 2](./related2.md?md-link=true).`
     );
 
     await fs.writeFile(
@@ -142,7 +142,7 @@ This doc should not be included unless directly linked or triggered.`
       `---
 description: Cycle A
 ---
-Links to [Cycle B](./cycle-b.md?mdr-include=true)`
+Links to [Cycle B](./cycle-b.md?md-link=true)`
     );
 
     await fs.writeFile(
@@ -150,7 +150,7 @@ Links to [Cycle B](./cycle-b.md?mdr-include=true)`
       `---
 description: Cycle B
 ---
-Links back to [Cycle A](./cycle-a.md?mdr-include=true)`
+Links back to [Cycle A](./cycle-a.md?md-link=true)`
     );
 
     await fs.writeFile(configFileAbs, `{ "config": "value" }`); // Non-markdown file
@@ -202,7 +202,7 @@ This doc is linked from the 'always' doc.
 
 <doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
 This doc is always present.
-It links to [Related Doc](./related.md?mdr-include=true).
+It links to [Related Doc](./related.md?md-link=true).
 </doc>`;
     expect(nl(output)).toBe(nl(expectedOutput));
   });
@@ -216,12 +216,12 @@ This doc is linked from the 'always' doc.
 
 <doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
 This doc is always present.
-It links to [Related Doc](./related.md?mdr-include=true).
+It links to [Related Doc](./related.md?md-link=true).
 </doc>
 
 <doc description="Auto TS Inclusion" type="auto" file="${toRelative(autoTsDocPathAbs)}">
 This doc applies to TypeScript files.
-It has an inline link: [Inline Target Section](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=1-2)
+It has an inline link: [Inline Target Section](./inline-target.md?md-embed=1-2)
 <inline_doc description="Inline Target Section" file="${toRelative(inlineTargetDocPathAbs)}" lines="1-2">
 ${expectedInlineContent}
 </inline_doc>
@@ -237,7 +237,7 @@ This doc is linked from the 'always' doc.
 
 <doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
 This doc is always present.
-It links to [Related Doc](./related.md?mdr-include=true).
+It links to [Related Doc](./related.md?md-link=true).
 </doc>
 
 <doc description="Related Doc 2" type="related" file="${toRelative(relatedDoc2PathAbs)}">
@@ -246,7 +246,7 @@ This doc is related to various things.
 
 <doc description="Agent Triggered Doc" type="agent" file="${toRelative(agentDocPathAbs)}">
 This doc is triggered by the agent description match.
-and is related to [Related Doc 2](./related2.md?mdr-include=true).
+and is related to [Related Doc 2](./related2.md?md-link=true).
 </doc>`;
     expect(nl(output)).toBe(nl(expectedOutput));
   });
@@ -259,15 +259,15 @@ This doc is linked from the 'always' doc.
 
 <doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
 This doc is always present.
-It links to [Related Doc](./related.md?mdr-include=true).
+It links to [Related Doc](./related.md?md-link=true).
 </doc>
 
 <doc description="Cycle B" type="related" file="${toRelative(cycleBDocPathAbs)}">
-Links back to [Cycle A](./cycle-a.md?mdr-include=true)
+Links back to [Cycle A](./cycle-a.md?md-link=true)
 </doc>
 
 <doc description="Cycle A" type="agent" file="${toRelative(cycleADocPathAbs)}">
-Links to [Cycle B](./cycle-b.md?mdr-include=true)
+Links to [Cycle B](./cycle-b.md?md-link=true)
 </doc>`;
     expect(nl(output)).toBe(nl(expectedOutput));
   });
@@ -279,7 +279,7 @@ description: Always Included
 alwaysApply: true
 ---
 This doc is always present.
-It links to [Config File](./config.json?mdr-include=true).`;
+It links to [Config File](./config.json?md-link=true).`;
     await fs.writeFile(alwaysDocPathAbs, alwaysWithJsonLink);
     await docIndexService.buildIndex(); // Re-index
 
@@ -290,7 +290,7 @@ It links to [Config File](./config.json?mdr-include=true).`;
 
 <doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
 This doc is always present.
-It links to [Config File](./config.json?mdr-include=true).
+It links to [Config File](./config.json?md-link=true).
 </doc>`;
     expect(nl(output)).toBe(nl(expectedOutput));
 
@@ -302,7 +302,7 @@ description: Always Included
 alwaysApply: true
 ---
 This doc is always present.
-It links to [Related Doc](./related.md?mdr-include=true).`
+It links to [Related Doc](./related.md?md-link=true).`
     );
   });
 
@@ -339,7 +339,7 @@ It links to [Related Doc](./related.md?mdr-include=true).`
       `---
 description: Pre A (Agent Trigger)
 ---
-Links to [Pre B](./pre-b.md?mdr-include=true)`
+Links to [Pre B](./pre-b.md?md-link=true)`
     );
     await fs.writeFile(
       preBPathAbs,
@@ -355,7 +355,7 @@ This is related to Pre A.`
 
     const expectedOutput = `<doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
 This doc is always present.
-It links to [Related Doc](./related.md?mdr-include=true).
+It links to [Related Doc](./related.md?md-link=true).
 </doc>
 
 <doc description="Related Doc" type="related" file="${toRelative(relatedDocPathAbs)}">
@@ -363,7 +363,7 @@ This doc is linked from the 'always' doc.
 </doc>
 
 <doc description="Pre A (Agent Trigger)" type="agent" file="${toRelative(preAPathAbs)}">
-Links to [Pre B](./pre-b.md?mdr-include=true)
+Links to [Pre B](./pre-b.md?md-link=true)
 </doc>
 
 <doc description="Pre B" type="related" file="${toRelative(preBPathAbs)}">
@@ -384,10 +384,10 @@ description: Auto TS Inclusion Extended Ranges
 globs: ["**/*.ts"]
 ---
 This doc applies to TypeScript files.
-Range 1-2: [Inline 1-2](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=1-2)
-Range 0-1: [Inline 0-1](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=-1)
-Range 2-end: [Inline 2-end](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=2-)
-Single Line 3: [Inline 3-3](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=3-3)`;
+Range 1-2: [Inline 1-2](./inline-target.md?md-link=true&md-embed=1-2)
+Range 0-1: [Inline 0-1](./inline-target.md?md-link=true&md-embed=-1)
+Range 2-end: [Inline 2-end](./inline-target.md?md-link=true&md-embed=2-)
+Single Line 3: [Inline 3-3](./inline-target.md?md-link=true&md-embed=3-3)`;
     await fs.writeFile(autoTsDocPathAbs, autoTsExtendedContent);
     await docIndexService.buildIndex(); // Re-index
 
@@ -403,24 +403,24 @@ This doc is linked from the 'always' doc.
 
 <doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
 This doc is always present.
-It links to [Related Doc](./related.md?mdr-include=true).
+It links to [Related Doc](./related.md?md-link=true).
 </doc>
 
 <doc description="Auto TS Inclusion Extended Ranges" type="auto" file="${toRelative(autoTsDocPathAbs)}">
 This doc applies to TypeScript files.
-Range 1-2: [Inline 1-2](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=1-2)
+Range 1-2: [Inline 1-2](./inline-target.md?md-link=true&md-embed=1-2)
 <inline_doc description="Inline 1-2" file="${toRelative(inlineTargetDocPathAbs)}" lines="1-2">
 ${expectedInline_1_2}
 </inline_doc>
-Range 0-1: [Inline 0-1](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=-1)
+Range 0-1: [Inline 0-1](./inline-target.md?md-link=true&md-embed=-1)
 <inline_doc description="Inline 0-1" file="${toRelative(inlineTargetDocPathAbs)}" lines="0-1">
 ${expectedInline_0_1}
 </inline_doc>
-Range 2-end: [Inline 2-end](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=2-)
+Range 2-end: [Inline 2-end](./inline-target.md?md-link=true&md-embed=2-)
 <inline_doc description="Inline 2-end" file="${toRelative(inlineTargetDocPathAbs)}" lines="2-end">
 ${expectedInline_2_end}
 </inline_doc>
-Single Line 3: [Inline 3-3](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=3-3)
+Single Line 3: [Inline 3-3](./inline-target.md?md-link=true&md-embed=3-3)
 <inline_doc description="Inline 3-3" file="${toRelative(inlineTargetDocPathAbs)}" lines="3-3">
 ${expectedInline_3_3}
 </inline_doc>
@@ -435,7 +435,7 @@ description: Auto TS Inclusion
 globs: ["**/*.ts"]
 ---
 This doc applies to TypeScript files.
-It has an inline link: [Inline Target Section](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=1-2)`
+It has an inline link: [Inline Target Section](./inline-target.md?md-embed=1-2)`
     );
   });
 
@@ -465,12 +465,12 @@ This doc is linked from the 'always' doc.
 
 <doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
 This doc is always present.
-It links to [Related Doc](./related.md?mdr-include=true).
+It links to [Related Doc](./related.md?md-link=true).
 </doc>
 
 <doc description="Auto TS Inclusion" type="auto" file="${toRelative(autoTsDocPathAbs)}">
 This doc applies to TypeScript files.
-It has an inline link: [Inline Target Section](./inline-target.md?mdr-include=true&mdr-inline=true&mdr-lines=1-2)
+It has an inline link: [Inline Target Section](./inline-target.md?md-embed=1-2)
 <inline_doc description="Inline Target Section" file="${toRelative(inlineTargetDocPathAbs)}" lines="1-2">
 Line 1
 Line 2
@@ -514,7 +514,7 @@ This doc is linked from the 'always' doc.
 
 <doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
 This doc is always present.
-It links to [Related Doc](./related.md?mdr-include=true).
+It links to [Related Doc](./related.md?md-link=true).
 </doc>
 
 <doc description="Auto Agent Doc" type="auto" file="${toRelative(autoAgentDocAbs)}">

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, Mocked } from "vitest";
-import { DocIndexService } from "./doc-index.service.js";
+import { DocIndexService } from "../doc-index.service.js";
 import {
   IFileSystemService,
   IDocIndexService,
@@ -7,14 +7,14 @@ import {
   ILinkExtractorService,
   DocLink,
   DocIndex,
-} from "./types.js";
-import { unwrapMock } from "../setup.tests.js";
-import { Config } from "./config.js";
-import { createMockDoc } from "./doc-index.service.mock.js";
-import { createMockFileSystemService } from "./file-system.service.mock.js";
-import { createMockDocParserService } from "./doc-parser.service.mock.js";
-import { createMockLinkExtractorService } from "./link-extractor.service.mock.js";
-import { createConfigMock } from "./config.mock.js";
+} from "../types.js";
+import { unwrapMock } from "../../setup.tests.js";
+import { Config } from "../config.js";
+import { createMockDoc } from "./__mocks__/doc-index.service.mock.js";
+import { createMockFileSystemService } from "./__mocks__/file-system.service.mock.js";
+import { createMockDocParserService } from "./__mocks__/doc-parser.service.mock.js";
+import { createMockLinkExtractorService } from "./__mocks__/link-extractor.service.mock.js";
+import { createConfigMock } from "./__mocks__/config.mock.js";
 
 vi.mock("./file-system.service.js");
 vi.mock("./doc-parser.service.js");
@@ -98,8 +98,8 @@ describe("DocIndexService", () => {
   });
 
   it("should build an index with nested dependencies (A -> B -> C)", async () => {
-    const docAContent = "# Doc A\n[Link to B](./subdir/docB.md?mdr-include=true)";
-    const docBContent = "# Doc B\n[Link to C](./docC.md?mdr-include=true)";
+    const docAContent = "# Doc A\n[Link to B](./subdir/docB.md?md-link=true)";
+    const docBContent = "# Doc B\n[Link to C](./docC.md?md-link=true)";
     const docCContent = "# Doc C";
     const docA = createMockDoc(FILE_A, { content: docAContent });
     const docB = createMockDoc(FILE_B, { content: docBContent });
@@ -108,13 +108,13 @@ describe("DocIndexService", () => {
       filePath: FILE_B,
       isInline: false,
       anchorText: "Link to B",
-      rawLinkTarget: "./subdir/docB.md?mdr-include=true",
+      rawLinkTarget: "./subdir/docB.md?md-link=true",
     };
     const linkToC: DocLink = {
       filePath: FILE_C,
       isInline: false,
       anchorText: "Link to C",
-      rawLinkTarget: "./docC.md?mdr-include=true",
+      rawLinkTarget: "./docC.md?md-link=true",
     };
 
     mockFileSystemService.findFiles.mockResolvedValue([FILE_A]); // Start discovery with A
@@ -182,7 +182,7 @@ describe("DocIndexService", () => {
   });
 
   it("should build an index resolving a single link", async () => {
-    const docAContent = "# Doc A\n[Link to B](./docB.md?mdr-include=true)";
+    const docAContent = "# Doc A\n[Link to B](./docB.md?md-link=true)";
     const docBContent = "# Doc B";
     const docA = createMockDoc(FILE_A, { content: docAContent });
     const docB = createMockDoc(FILE_B, { content: docBContent });
@@ -190,7 +190,7 @@ describe("DocIndexService", () => {
       filePath: FILE_B,
       isInline: false,
       anchorText: "Link to B",
-      rawLinkTarget: "./docB.md?mdr-include=true",
+      rawLinkTarget: "./docB.md?md-link=true",
     };
 
     mockFileSystemService.findFiles.mockResolvedValue([FILE_A]);
@@ -231,21 +231,21 @@ describe("DocIndexService", () => {
   });
 
   it("should handle circular dependencies without infinite looping", async () => {
-    const docAContent = "# Doc A\n[Link to B](./docB.md?mdr-include=true)";
-    const docBContent = "# Doc B\n[Link to A](./docA.md?mdr-include=true)";
+    const docAContent = "# Doc A\n[Link to B](./docB.md?md-link=true)";
+    const docBContent = "# Doc B\n[Link to A](./docA.md?md-link=true)";
     const docA = createMockDoc(FILE_A, { content: docAContent });
     const docB = createMockDoc(FILE_B, { content: docBContent });
     const linkToB: DocLink = {
       filePath: FILE_B,
       isInline: false,
       anchorText: "Link to B",
-      rawLinkTarget: "./docB.md?mdr-include=true",
+      rawLinkTarget: "./docB.md?md-link=true",
     };
     const linkToA: DocLink = {
       filePath: FILE_A,
       isInline: false,
       anchorText: "Link to A",
-      rawLinkTarget: "./docA.md?mdr-include=true",
+      rawLinkTarget: "./docA.md?md-link=true",
     };
 
     mockFileSystemService.findFiles.mockResolvedValue([FILE_A]); // Start with A
@@ -279,7 +279,7 @@ describe("DocIndexService", () => {
   });
 
   it("should handle links to non-markdown files", async () => {
-    const docAContent = "# Doc A\n[Config](./config.json?mdr-include=true)";
+    const docAContent = "# Doc A\n[Config](./config.json?md-link=true)";
     const jsonContent = JSON.stringify({ key: "value" });
     const docA = createMockDoc(FILE_A, { content: docAContent });
     const jsonDoc = createMockDoc(FILE_JSON, { content: jsonContent, isMarkdown: false });
@@ -287,7 +287,7 @@ describe("DocIndexService", () => {
       filePath: FILE_JSON,
       isInline: false,
       anchorText: "Config",
-      rawLinkTarget: "./config.json?mdr-include=true",
+      rawLinkTarget: "./config.json?md-link=true",
     };
 
     mockFileSystemService.findFiles.mockResolvedValue([FILE_A]);
@@ -412,9 +412,9 @@ describe("DocIndexService", () => {
 
   it("should reuse existing docs from the map instead of re-reading/parsing", async () => {
     // Scenario: A -> B, C -> B. FindFiles returns A and C.
-    const docAContent = "# Doc A\n[Link to B](./docB.md?mdr-include=true)";
+    const docAContent = "# Doc A\n[Link to B](./docB.md?md-link=true)";
     const docBContent = "# Doc B";
-    const docCContent = "# Doc C\n[Link to B](./docB.md?mdr-include=true)";
+    const docCContent = "# Doc C\n[Link to B](./docB.md?md-link=true)";
     const docA = createMockDoc(FILE_A, { content: docAContent });
     const docB = createMockDoc(FILE_B, { content: docBContent });
     const docC = createMockDoc(FILE_C, { content: docCContent });
@@ -422,13 +422,13 @@ describe("DocIndexService", () => {
       filePath: FILE_B,
       isInline: false,
       anchorText: "Link to B",
-      rawLinkTarget: "./docB.md?mdr-include=true",
+      rawLinkTarget: "./docB.md?md-link=true",
     };
     const linkToBFromC: DocLink = {
       filePath: FILE_B,
       isInline: false,
       anchorText: "Link to B",
-      rawLinkTarget: "./docB.md?mdr-include=true",
+      rawLinkTarget: "./docB.md?md-link=true",
     };
 
     mockFileSystemService.findFiles.mockResolvedValue([FILE_A, FILE_C]); // Start with A and C

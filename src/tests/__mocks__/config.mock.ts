@@ -1,4 +1,4 @@
-import type { Config } from "./config";
+import type { Config } from "../../config";
 
 export const createConfigMock = (partialConfig: Partial<Config>): Config => ({
   PROJECT_ROOT: "/project",

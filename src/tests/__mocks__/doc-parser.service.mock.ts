@@ -1,5 +1,5 @@
 import { vi, Mocked } from "vitest";
-import { IDocParserService } from "./types.js";
+import { IDocParserService } from "../../types.js";
 
 export function createMockDocParserService(): Mocked<IDocParserService> {
   return {

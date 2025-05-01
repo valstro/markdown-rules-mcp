@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, Mocked } from "vitest";
-import { DocFormatterService } from "./doc-formatter.service.js";
+import { DocFormatterService } from "../doc-formatter.service.js";
 import {
   IDocIndexService,
   Doc,
@@ -7,10 +7,10 @@ import {
   DocLink,
   DocLinkRange,
   IFileSystemService,
-} from "./types.js";
-import { unwrapMock } from "../setup.tests.js"; // Assuming you have this helper
-import { createMockDoc, createMockDocIndexService } from "./doc-index.service.mock.js";
-import { createMockFileSystemService } from "./file-system.service.mock.js";
+} from "../types.js";
+import { unwrapMock } from "../../setup.tests.js"; // Assuming you have this helper
+import { createMockDoc, createMockDocIndexService } from "./__mocks__/doc-index.service.mock.js";
+import { createMockFileSystemService } from "./__mocks__/file-system.service.mock.js";
 
 describe("DocFormatterService", () => {
   let mockDocIndexService: Mocked<IDocIndexService>;
@@ -41,12 +41,15 @@ describe("DocFormatterService", () => {
     });
 
     mockFileSystemService.resolvePath.mockImplementation((base, rel) => {
-      if (base === DOC_A_DIR && (rel === './inline.md' || rel === './inline1.md' || rel === './inline2.md')) {
-        if (rel === './inline.md') return INLINE_DOC_PATH;
-        if (rel === './inline1.md') return '/path/inline1.md';
-        if (rel === './inline2.md') return '/path/inline2.md';
+      if (
+        base === DOC_A_DIR &&
+        (rel === "./inline.md" || rel === "./inline1.md" || rel === "./inline2.md")
+      ) {
+        if (rel === "./inline.md") return INLINE_DOC_PATH;
+        if (rel === "./inline1.md") return "/path/inline1.md";
+        if (rel === "./inline2.md") return "/path/inline2.md";
       }
-      return `${base}/${rel.startsWith('/') ? '' : '/'}${rel.replace(/^\.\//, '')}`;
+      return `${base}/${rel.startsWith("/") ? "" : "/"}${rel.replace(/^\.\//, "")}`;
     });
 
     docFormatterService = new DocFormatterService(
@@ -94,7 +97,7 @@ describe("DocFormatterService", () => {
     });
 
     it("should format a doc with an inline link", async () => {
-      const rawTarget = "./inline.md?mdr-include=true&mdr-inline=true";
+      const rawTarget = "./inline.md?md-link=true&md-embed=true";
       const linkToInline: DocLink = {
         filePath: INLINE_DOC_PATH,
         rawLinkTarget: rawTarget,
@@ -124,7 +127,7 @@ describe("DocFormatterService", () => {
 
     it("should format a doc with an inline link with line range", async () => {
       const range: DocLinkRange = { from: 1, to: 3 };
-      const rawTarget = "./inline.md?mdr-include=true&mdr-inline=true&mdr-lines=1-3";
+      const rawTarget = "./inline.md?md-link=true&md-embed=1-3";
       const linkToInline: DocLink = {
         filePath: INLINE_DOC_PATH,
         rawLinkTarget: rawTarget,
@@ -156,7 +159,7 @@ describe("DocFormatterService", () => {
 
     it("should format a doc with an inline link with line range to 'end'", async () => {
       const range: DocLinkRange = { from: 2, to: "end" };
-      const rawTarget = "./inline.md?mdr-include=true&mdr-inline=true&mdr-lines=2-end";
+      const rawTarget = "./inline.md?md-link=true&md-embed=2-end";
       const linkToInline: DocLink = {
         filePath: INLINE_DOC_PATH,
         rawLinkTarget: rawTarget,
@@ -187,7 +190,7 @@ describe("DocFormatterService", () => {
     });
 
     it("should skip inline expansion if linked doc is an error doc", async () => {
-      const rawTarget = "./inline.md?mdr-include=true&mdr-inline=true";
+      const rawTarget = "./inline.md?md-link=true&md-embed=true";
       const linkToInline: DocLink = {
         filePath: INLINE_DOC_PATH,
         rawLinkTarget: rawTarget,
@@ -215,7 +218,7 @@ describe("DocFormatterService", () => {
     });
 
     it("should handle errors when fetching inline doc", async () => {
-      const rawTarget = "./inline.md?mdr-include=true&mdr-inline=true";
+      const rawTarget = "./inline.md?md-link=true&md-embed=true";
       const linkToInline: DocLink = {
         filePath: INLINE_DOC_PATH,
         rawLinkTarget: rawTarget,
@@ -247,8 +250,8 @@ describe("DocFormatterService", () => {
       const inlineDoc1 = createMockDoc(inlineDoc1Path, { content: inlineDoc1Content });
       const inlineDoc2 = createMockDoc(inlineDoc2Path, { content: inlineDoc2Content });
 
-      const rawTarget1 = "./inline1.md?mdr-include=true&mdr-inline=true";
-      const rawTarget2 = "./inline2.md?mdr-include=true&mdr-inline=true&mdr-lines=0-0";
+      const rawTarget1 = "./inline1.md?md-link=true&md-embed=true";
+      const rawTarget2 = "./inline2.md?md-link=true&md-embed=0-0";
 
       const link1: DocLink = {
         filePath: inlineDoc1Path,

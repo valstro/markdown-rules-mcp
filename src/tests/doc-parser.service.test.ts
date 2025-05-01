@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, Mocked } from "vitest";
-import { DocParserService } from "./doc-parser.service";
+import { DocParserService } from "../doc-parser.service";
 
 describe("DocParserService", () => {
   let docParserService: DocParserService;

@@ -1,5 +1,5 @@
 import { vi, Mocked } from "vitest";
-import { ILinkExtractorService } from "./types.js";
+import { ILinkExtractorService } from "../../types.js";
 
 export function createMockLinkExtractorService(): Mocked<ILinkExtractorService> {
   return {
