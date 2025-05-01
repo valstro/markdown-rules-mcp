@@ -1,0 +1,62 @@
+name: merge-main
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+  packages: write
+
+jobs:
+  merge-main:
+    runs-on: [valstro-runner-node20, linux-medium]
+    timeout-minutes: 15
+
+    steps:
+      - name: Clone Repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Actor
+        run: echo "GITHUB_ACTOR=$(echo $GITHUB_ACTOR)" >> $GITHUB_ENV
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: .nvmrc
+          # Defaults to the user or organization that owns the workflow file
+          scope: "@valstro"
+          registry-url: "https://npm.pkg.github.com"
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Tests
+        run: npm test
+
+      - name: Creating Release
+        id: release
+        uses: google-github-actions/release-please-action@v3
+        with:
+          command: manifest
+
+      - name: Build Package
+        if: ${{ steps.release.outputs.releases_created }}
+        run: npm run build
+
+      - name: Publish Package
+        if: ${{ steps.release.outputs.releases_created }}
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Git User
+        if: ${{ steps.release.outputs.releases_created }}
+        run: |
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git config --global user.name $GITHUB_ACTOR

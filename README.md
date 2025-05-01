@@ -100,13 +100,14 @@ alwaysApply: true
     *   Linked Markdown files are included as `<doc>` tags.
     *   Linked non-Markdown files (e.g., code, config) are included as `<file>` tags, containing their raw content.
 
-5.  **Include specific context inline via links:** To embed specific parts of another file directly within the current document's context, use the `md-embed=true` parameter along with `md-link=true`. You can specify line ranges using `mdr-lines`.
+5.  **Include specific context inline via links:** To embed specific parts of another file directly within the current document's context, use the `md-embed=true` parameter along with `md-link=true`. You can specify line ranges using `mdr-embed`.
     *   Syntax: `[Link Text](./path/to/snippet.txt?md-embed=START-END)`
-    *   `mdr-lines` Formats:
-        *   `N-M`: Lines N to M (inclusive, 0-indexed).
-        *   `N-` or `N-end`: Lines N to the end of the file.
-        *   `-M`: Lines 0 to M.
-        *   `N-N`: Single line N.
+    *   `mdr-embed` Formats:
+        *   `1-10`: Lines 1 to 10 (inclusive).
+        *   `1-`: Lines 1 to the end of the file.
+        *   `-10`: Lines 1 to 10.
+        *   `1-1`: Line 1.
+        *   `true`: The entire file.
     *   Inline content is embedded within an `<inline_doc>` tag inside the parent `<doc>`.
 
 6.  **How it works:**

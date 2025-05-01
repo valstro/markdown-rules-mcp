@@ -1,7 +1,7 @@
 {
-  "name": "markdown-rules",
+  "name": "markdown-rules-mcp",
   "version": "0.1.0",
-  "description": "A Model Context Protocol server with Exa for web search, academic paper search, and Twitter/X.com search. Provides real-time web searches with configurable tool selection, allowing users to enable or disable specific search capabilities. Supports customizable result counts, live crawling options, and returns content from the most relevant websites.",
+  "description": "A Model Context Protocol (MCP) server that provides a portable and enhanced alternative to editor-specific documentation rules (like Cursor Rules). It allows you to define project documentation and context in standard Markdown files, making them usable across any MCP-compatible AI coding tool.",
   "type": "module",
   "repository": {
     "type": "git",
@@ -29,11 +29,13 @@
   "scripts": {
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "build": "vitest --watch=false && tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+    "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
     "prepare": "npm run build",
     "watch": "tsc --watch",
     "inspector": "npm run build && LOG_LEVEL=debug MARKDOWN_GLOB_PATTERN=./docs/**/*.md npx @modelcontextprotocol/inspector node build/index.js",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "release": "release-please --token=$GITHUB_TOKEN",
+    "release-dry-run": "release-please --dry-run"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.7.0",
@@ -48,9 +50,11 @@
     "@types/micromatch": "^4.0.9",
     "@types/node": "^20.11.24",
     "@types/yargs": "^17.0.33",
+    "husky": "^9.1.7",
     "prettier": "^3.4.2",
     "typescript": "^5.3.3",
-    "vitest": "^3.1.2"
+    "vitest": "^3.1.2",
+    "release-please": "^16.3.1"
   },
   "engines": {
     "node": ">=18.0.0"
