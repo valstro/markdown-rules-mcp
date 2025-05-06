@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v1.0.0...markdown-rules-mcp-v1.0.1) (2025-05-06)
+
+
+### Bug Fixes
+
+* package name ([#7](https://github.com/valstro/markdown-rules-mcp/issues/7)) ([b157068](https://github.com/valstro/markdown-rules-mcp/commit/b157068619e2280ce0790886afdd9a6731cd6c9b))
+
 ## 1.0.0 (2025-05-06)
 
 
