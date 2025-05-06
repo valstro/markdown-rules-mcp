@@ -41,6 +41,17 @@ jobs:
       - name: Test Build
         run: npm run build
 
+      - name: Debug Token Length
+        run: |
+          echo "Token length: ${#GH_PACKAGES_TOKEN}"
+        env:
+          GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+
+      - name: Write .npmrc for publish
+        run: echo "//npm.pkg.github.com/:_authToken=${GH_PACKAGES_TOKEN}" > ~/.npmrc
+        env:
+          GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}    
+
       - name: Print npm config
         run: |
           npm config list
