@@ -46,10 +46,10 @@ jobs:
       #   if: startsWith(github.head_ref, 'release-please--branches--main')
       #   run: npm run release-dry-run
       #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     GITHUB_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
 
       - name: Test Publish (if release PR)
         if: startsWith(github.head_ref, 'release-please--branches--main')
         run: npm publish --dry-run
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
