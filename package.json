@@ -30,7 +30,7 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
-    "prepare": "npm run build",
+    "prepare": "husky",
     "watch": "tsc --watch",
     "inspector": "npm run build && LOG_LEVEL=debug MARKDOWN_GLOB_PATTERN=./docs/**/*.md npx @modelcontextprotocol/inspector node build/index.js",
     "prepublishOnly": "npm run build",
@@ -46,17 +46,19 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.8.0",
+    "@commitlint/config-conventional": "^19.8.0",
     "@types/js-yaml": "^4.0.9",
     "@types/micromatch": "^4.0.9",
     "@types/node": "^20.11.24",
     "@types/yargs": "^17.0.33",
     "husky": "^9.1.7",
     "prettier": "^3.4.2",
+    "release-please": "^16.3.1",
     "typescript": "^5.3.3",
-    "vitest": "^3.1.2",
-    "release-please": "^16.3.1"
+    "vitest": "^3.1.2"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   }
 }

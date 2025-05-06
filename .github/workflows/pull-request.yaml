@@ -8,13 +8,13 @@ on:
 jobs:
   # when in branches, if multiple runs exist and are active, cancel all but most recent run
   cancel-previous-runs:
-    runs-on: [valstro-runner-node20, linux-medium]
+    runs-on: [valstro-runner, node20, linux-medium]
     steps:
       - name: Cancel Previous Runs
         uses: styfle/cancel-workflow-action@0.9.1
 
   pr-main:
-    runs-on: [valstro-runner-node20, linux-medium]
+    runs-on: [valstro-runner, node20, linux-medium]
     timeout-minutes: 15
     steps:
       - name: Clone Repo

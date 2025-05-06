@@ -18,7 +18,7 @@ COPY tsconfig.json ./
 RUN npm run build
 
 # Use a minimal node image as the base image for running
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
 
 WORKDIR /app
 
@@ -29,8 +29,8 @@ COPY package.json package-lock.json ./
 # Install only production dependencies
 RUN npm ci --production --ignore-scripts
 
-# Set environment variable for the Exa API key
-ENV EXA_API_KEY=your-api-key-here
+# Set environment variables
+ENV MARKDOWN_GLOB_PATTERN=**/*.md
 
 # Expose the port the app runs on
 EXPOSE 3000

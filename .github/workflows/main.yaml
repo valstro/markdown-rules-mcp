@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   merge-main:
-    runs-on: [valstro-runner-node20, linux-medium]
+    runs-on: [valstro-runner, node20, linux-medium]
     timeout-minutes: 15
 
     steps:
@@ -20,9 +20,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
-      - name: Setup Actor
-        run: echo "GITHUB_ACTOR=$(echo $GITHUB_ACTOR)" >> $GITHUB_ENV
 
       - name: Setup Node
         uses: actions/setup-node@v3
