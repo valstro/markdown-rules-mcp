@@ -34,7 +34,7 @@
     "watch": "tsc --watch",
     "inspector": "npm run build && LOG_LEVEL=debug MARKDOWN_GLOB_PATTERN=./docs/**/*.md npx @modelcontextprotocol/inspector node build/index.js",
     "prepublishOnly": "npm run build",
-    "release-dry-run": "release-please --dry-run"
+    "release-dry-run": "release-please release-pr --dry-run"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.7.0",
