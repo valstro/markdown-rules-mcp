@@ -48,12 +48,6 @@ jobs:
 
       - name: Publish Package
         if: ${{ steps.release.outputs.releases_created }}
-        run: npm publish
+        run: npm publish --registry=https://npm.pkg.github.com
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
-
-      - name: Setup Git User
-        if: ${{ steps.release.outputs.releases_created }}
-        run: |
-          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
-          git config --global user.name $GITHUB_ACTOR
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
