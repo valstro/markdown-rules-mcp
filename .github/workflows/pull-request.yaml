@@ -42,7 +42,13 @@ jobs:
         run: npm run build
 
       - name: Verify Release (if release PR)
-        if: contains(github.head_ref, 'release-please--branches--main')
+        if: startsWith(github.head_ref, 'release-please--branches--main')
         run: npm run release-dry-run
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Test Publish (if release PR)
+        if: startsWith(github.head_ref, 'release-please--branches--main')
+        run: npm publish --dry-run
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
