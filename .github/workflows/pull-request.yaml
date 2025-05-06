@@ -41,6 +41,11 @@ jobs:
       - name: Test Build
         run: npm run build
 
+      - name: Test NPM Auth
+        run: npm whoami --registry=https://npm.pkg.github.com
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
+
       - name: Test Publish (if release PR)
         if: startsWith(github.head_ref, 'release-please--branches--main')
         run: npm publish --dry-run --registry=https://npm.pkg.github.com
