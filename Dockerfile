@@ -29,8 +29,8 @@ COPY package.json package-lock.json ./
 # Install only production dependencies
 RUN npm ci --production --ignore-scripts
 
-# Set environment variable for the Exa API key
-ENV EXA_API_KEY=your-api-key-here
+# Set environment variables
+ENV MARKDOWN_GLOB_PATTERN=**/*.md
 
 # Expose the port the app runs on
 EXPOSE 3000
