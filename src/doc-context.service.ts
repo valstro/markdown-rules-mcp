@@ -77,7 +77,7 @@ export class DocContextService implements IDocContextService {
 
       // Next priority: Agent description match
       if (currentPriority > typePriority.agent) {
-        if (relevantDocsByDescription.includes(doc.filePath)) {
+        if (doc.meta.description && relevantDocsByDescription.includes(doc.meta.description)) {
           currentType = "agent";
           currentPriority = typePriority.agent;
         }
