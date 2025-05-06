@@ -41,8 +41,15 @@ jobs:
       - name: Test Build
         run: npm run build
 
-      - name: Verify Release (if release PR)
-        if: contains(github.head_ref, 'release-please--branches--main')
-        run: npm run release-dry-run
+      # TODO: Doesn't work due to IP restrictions on repo
+      # - name: Verify Release (if release PR)
+      #   if: startsWith(github.head_ref, 'release-please--branches--main')
+      #   run: npm run release-dry-run
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Test Publish (if release PR)
+        if: startsWith(github.head_ref, 'release-please--branches--main')
+        run: npm publish --dry-run
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,6 +1,6 @@
 {
   "name": "@valstro/markdown-rules-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A Model Context Protocol (MCP) server that provides a portable and enhanced alternative to editor-specific documentation rules (like Cursor Rules). It allows you to define project documentation and context in standard Markdown files, making them usable across any MCP-compatible AI coding tool.",
   "type": "module",
   "repository": {
@@ -34,7 +34,7 @@
     "watch": "tsc --watch",
     "inspector": "npm run build && LOG_LEVEL=debug MARKDOWN_GLOB_PATTERN=./docs/**/*.md npx @modelcontextprotocol/inspector node build/index.js",
     "prepublishOnly": "npm run build",
-    "release-dry-run": "release-please --dry-run"
+    "release-dry-run": "release-please release-pr --dry-run --repo-url=valstro/markdown-rules-mcp --target-branch=main"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.7.0",
