@@ -40,6 +40,7 @@ describe("DocContextService Integration Tests", () => {
   let alwaysDocPathAbs: string;
   let autoTsDocPathAbs: string;
   let agentDocPathAbs: string;
+  let agentDocDescription: string;
   let relatedDocPathAbs: string;
   let relatedDoc2PathAbs: string;
   let manualDocPathAbs: string;
@@ -47,7 +48,9 @@ describe("DocContextService Integration Tests", () => {
   let mainTsPathAbs: string;
   let unrelatedDocPathAbs: string;
   let cycleADocPathAbs: string;
+  let cycleADocDescription: string;
   let cycleBDocPathAbs: string;
+  let cycleBDocDescription: string;
   let configFileAbs: string;
 
   // Setup
@@ -62,6 +65,7 @@ describe("DocContextService Integration Tests", () => {
     alwaysDocPathAbs = path.join(tempDir, alwaysDocPathRel);
     autoTsDocPathAbs = path.join(tempDir, autoTsDocPathRel);
     agentDocPathAbs = path.join(tempDir, agentDocPathRel);
+    agentDocDescription = "Agent Triggered Doc";
     relatedDocPathAbs = path.join(tempDir, relatedDocPathRel);
     relatedDoc2PathAbs = path.join(tempDir, relatedDoc2PathRel);
     manualDocPathAbs = path.join(tempDir, manualDocPathRel);
@@ -69,7 +73,9 @@ describe("DocContextService Integration Tests", () => {
     mainTsPathAbs = path.join(tempDir, mainTsPathRel);
     unrelatedDocPathAbs = path.join(tempDir, unrelatedDocPathRel);
     cycleADocPathAbs = path.join(tempDir, cycleADocPathRel);
+    cycleADocDescription = "Cycle A";
     cycleBDocPathAbs = path.join(tempDir, cycleBDocPathRel);
+    cycleBDocDescription = "Cycle B";
     configFileAbs = path.join(tempDir, configFileRel);
 
     // Create necessary subdirectories
@@ -99,7 +105,7 @@ It has an inline link: [Inline Target Section](./inline-target.md?md-embed=1-2)`
     await fs.writeFile(
       agentDocPathAbs,
       `---
-description: Agent Triggered Doc
+description: ${agentDocDescription}
 ---
 This doc is triggered by the agent description match.
 
@@ -143,7 +149,7 @@ This doc should not be included unless directly linked or triggered.`
     await fs.writeFile(
       cycleADocPathAbs,
       `---
-description: Cycle A
+description: ${cycleADocDescription}
 ---
 Links to [Cycle B](./cycle-b.md?md-link=true)`
     );
@@ -151,7 +157,7 @@ Links to [Cycle B](./cycle-b.md?md-link=true)`
     await fs.writeFile(
       cycleBDocPathAbs,
       `---
-description: Cycle B
+description: ${cycleBDocDescription}
 ---
 Links back to [Cycle A](./cycle-a.md?md-link=true)`
     );
@@ -241,7 +247,7 @@ ${expectedInlineContent}
   });
 
   it("should include 'agent' doc  & its related doc when its path is provided", async () => {
-    const output = await docContextService.buildContextOutput([], [agentDocPathAbs]);
+    const output = await docContextService.buildContextOutput([], [agentDocDescription]);
     const expectedOutput = `<doc description="Related Doc" type="related" file="${toRelative(relatedDocPathAbs)}">
 This doc is linked from the 'always' doc.
 </doc>
@@ -280,7 +286,7 @@ This doc is manually included.
   });
 
   it("should handle cycles gracefully", async () => {
-    const output = await docContextService.buildContextOutput([], [cycleADocPathAbs]);
+    const output = await docContextService.buildContextOutput([], [cycleADocDescription]);
     const expectedOutput = `<doc description="Related Doc" type="related" file="${toRelative(relatedDocPathAbs)}">
 This doc is linked from the 'always' doc.
 </doc>
@@ -394,26 +400,28 @@ It links to [Related Doc](./related.md?md-link=true).
     const preAPathRel = "pre-a.md";
     const preBPathRel = "pre-b.md";
     const preAPathAbs = path.join(tempDir, preAPathRel);
+    const preADescription = "Pre A (Agent Trigger)";
     const preBPathAbs = path.join(tempDir, preBPathRel);
+    const preBDescription = "Pre B (Related)";
 
     await fs.writeFile(
       preAPathAbs,
       `---
-description: Pre A (Agent Trigger)
+description: ${preADescription}
 ---
 Links to [Pre B](./pre-b.md?md-link=true)`
     );
     await fs.writeFile(
       preBPathAbs,
       `---
-description: Pre B (Related)
+description: ${preBDescription}
 ---
 This is related to Pre A.`
     );
 
     await setup({ HOIST_CONTEXT: false });
 
-    const output = await docContextService.buildContextOutput([], [preAPathAbs]);
+    const output = await docContextService.buildContextOutput([], [preADescription]);
 
     const expectedOutput = `<doc description="Always Included" type="always" file="${toRelative(alwaysDocPathAbs)}">
 This doc is always present.
