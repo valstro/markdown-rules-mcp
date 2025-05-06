@@ -18,7 +18,7 @@ A Model Context Protocol (MCP) server that provides a portable and enhanced alte
 ### NPM Installation
 
 ```bash
-npm install -g markdown-rules-mcp
+npm install -g @valstro/markdown-rules-mcp
 ```
 
 ### Using Smithery
