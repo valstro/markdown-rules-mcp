@@ -41,11 +41,12 @@ jobs:
       - name: Test Build
         run: npm run build
 
-      - name: Verify Release (if release PR)
-        if: startsWith(github.head_ref, 'release-please--branches--main')
-        run: npm run release-dry-run
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # TODO: Doesn't work due to IP restrictions on repo
+      # - name: Verify Release (if release PR)
+      #   if: startsWith(github.head_ref, 'release-please--branches--main')
+      #   run: npm run release-dry-run
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Test Publish (if release PR)
         if: startsWith(github.head_ref, 'release-please--branches--main')
