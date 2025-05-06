@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.2.0...markdown-rules-mcp-v0.2.1) (2025-05-06)
+
+
+### Bug Fixes
+
+* agent docs not being picked up ([#19](https://github.com/valstro/markdown-rules-mcp/issues/19)) ([8d03c0d](https://github.com/valstro/markdown-rules-mcp/commit/8d03c0de43cfb9e1fafa39fb34997fdf6c0c96e8))
+
 ## [0.2.0](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.1.0...markdown-rules-mcp-v0.2.0) (2025-05-06)
 
 
