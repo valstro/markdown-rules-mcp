@@ -41,6 +41,13 @@ jobs:
       - name: Test Build
         run: npm run build
 
+      - name: Print npm config
+        run: |
+          npm config list
+          npm whoami || echo "Not authenticated"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}  
+
       # TODO: Doesn't work due to IP restrictions on repo
       # - name: Verify Release (if release PR)
       #   if: startsWith(github.head_ref, 'release-please--branches--main')
