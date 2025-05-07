@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.2.1...markdown-rules-mcp-v0.2.2) (2025-05-07)
+
+
+### Bug Fixes
+
+* improve agent included docs always being included ([#21](https://github.com/valstro/markdown-rules-mcp/issues/21)) ([93d9738](https://github.com/valstro/markdown-rules-mcp/commit/93d973810a18dfdf2e90a42382794329413ce4b3))
+
 ## [0.2.1](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.2.0...markdown-rules-mcp-v0.2.1) (2025-05-06)
 
 
