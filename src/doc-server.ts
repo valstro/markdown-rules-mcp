@@ -40,25 +40,27 @@ export class MarkdownRulesServer {
       .map((doc) => doc.meta.description)
       .filter((desc): desc is string => typeof desc === "string");
 
-    const relevantDocsByDescriptionEnum = z.enum(descriptions as [string, ...string[]]);
+    const projectDocsEnum = z.enum(descriptions as [string, ...string[]]);
 
     this.server.tool(
       "get_relevant_docs",
-      "Get relevant markdown docs inside this project before answering the user's query",
+      "Get relevant markdown docs inside this project before answering the user's query to help you reply based on more context.",
       {
         attachedFiles: z
           .array(z.string().describe("The file path to attach"))
-          .describe("A list of file paths the user included in their query"),
-        relevantDocsByDescription: z
-          .array(relevantDocsByDescriptionEnum.describe("The description of the relevant doc"))
+          .describe("A list of file paths included in the user's query.")
+          .optional(),
+        relevantProjectDocs: z
+          .array(projectDocsEnum.describe("The description of the relevant doc"))
           .describe(
-            "A list of relevant docs based on the user's query. Use the description to determine if the doc is relevant to the user's query."
-          ),
+            "A list of docs by their description in the project. Only include docs whose description directly matches the user's intent or topic. Don't include docs for the sake of including them. For example, if doc list is ['Frontend Guidelines', 'Frontend Testing Guidelines', 'Database Setup', 'API Reference', 'Github Actions'] and the user's query is How do I set up the database?, include 'Database Setup' in the list. If the query is 'How do I write frontend tests?', only include 'Frontend Testing Guidelines'. Do not include docs that are unrelated to the query and try to be specific (e.g., do not include 'API Reference' for a database setup question). If the user's query is 'How does git work?', do not include any docs. This is clearly a generic question unrelated to this specific project."
+          )
+          .optional(),
       },
-      async ({ attachedFiles, relevantDocsByDescription }) => {
+      async ({ attachedFiles = [], relevantProjectDocs = [] }) => {
         const text = await this.docsContextService.buildContextOutput(
           attachedFiles,
-          relevantDocsByDescription
+          relevantProjectDocs
         );
 
         const content: { type: "text"; text: string }[] = [];
