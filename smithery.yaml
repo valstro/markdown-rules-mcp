@@ -10,6 +10,10 @@ startCommand:
         type: string
         description: Glob pattern to find Markdown files.
         default: "**/*.md"
+      hoistContext:
+        type: boolean
+        description: Whether to hoist context.
+        default: true
   commandFunction:
     # A function that produces the CLI command to start the MCP on stdio.
     |-
@@ -17,6 +21,7 @@ startCommand:
       const env = {
         // Set defaults directly in the schema, pass configured values here
         MARKDOWN_GLOB_PATTERN: config.markdownGlobPattern,
+        HOIST_CONTEXT: config.hoistContext,
       }
       // Filter out any undefined values if needed, though defaults should cover this
       // Object.keys(env).forEach(key => env[key] === undefined && delete env[key]);

@@ -1,16 +1,6 @@
----
-description: 
-globs: 
-alwaysApply: true
----
-## Agent Rules: `get_relevant_docs` Tool Usage
-
-**Core Requirement:**
+# Usage Instructions
 
 *   You **must** call the `get_relevant_docs` MCP tool before providing your first response in any new chat session.
-
-**When to Call Again:**
-
 *   After the initial call in a chat, you should **only** call `get_relevant_docs` again if one of these specific situations occurs:
     *   The user explicitly requests it.
     *   The user attaches new files.
