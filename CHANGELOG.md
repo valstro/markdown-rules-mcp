@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.2.3...markdown-rules-mcp-v0.2.4) (2025-05-27)
+
+
+### Bug Fixes
+
+* **package:** removing github package step ([#25](https://github.com/valstro/markdown-rules-mcp/issues/25)) ([b87ffb1](https://github.com/valstro/markdown-rules-mcp/commit/b87ffb12361a4d0a833670e4289f2201bfddb0d1))
+
 ## [0.2.3](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.2.2...markdown-rules-mcp-v0.2.3) (2025-05-27)
 
 
