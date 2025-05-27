@@ -1,8 +1,9 @@
 name: pull-request-main
 
 on:
-  pull_request_target:  # Runs in context of base branch
-    branches: [main]
+  push:
+    branches:
+      - main
 
 jobs:
   # when in branches, if multiple runs exist and are active, cancel all but most recent run
