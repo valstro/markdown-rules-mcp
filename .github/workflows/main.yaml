@@ -12,17 +12,17 @@ permissions:
 
 jobs:
   merge-main:
-    runs-on: [valstro-runner, node20, linux-medium]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
       - name: Clone Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           # Defaults to the user or organization that owns the workflow file
