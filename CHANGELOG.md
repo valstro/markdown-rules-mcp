@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.5](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.2.4...markdown-rules-mcp-v0.2.5) (2025-05-27)
+
+
+### Bug Fixes
+
+* **npm:** registry location ([#27](https://github.com/valstro/markdown-rules-mcp/issues/27)) ([843b5c7](https://github.com/valstro/markdown-rules-mcp/commit/843b5c7348336556e77f148242f60ca67e6aab2d))
+
 ## [0.2.4](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.2.3...markdown-rules-mcp-v0.2.4) (2025-05-27)
 
 
