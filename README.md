@@ -29,15 +29,6 @@ Transform your project documentation into intelligent AI context using standard 
 npm install -g @valstro/markdown-rules-mcp
 ```
 
-### Using Smithery
-
-To install the Markdown Rules MCP server for Cursor automatically via [Smithery](https://smithery.ai/server/markdown-rules):
-
-```bash
-npx -y @smithery/cli install markdown-rules-mcp --client cursor
-```
-
-
 ## Configuration ⚙️
 
 ### 1. Add the server configuration:
@@ -298,8 +289,7 @@ Built with ❤️ by Valstro
 
 ## Future Improvements
 
-- [ ] Support Cursor Rules YAML frontmatter format.
-- [ ] Add watch mode to re-index docs when markdown files matching the MARKDOWN_GLOB_PATTERN are added/modified/deleted.
-- [ ] Provide an indication of how large the doc context is.
+- [ ] Support Cursor Rules YAML frontmatter format
+- [ ] Add watch mode to re-index docs when markdown files matching the MARKDOWN_GLOB_PATTERN have changed
 - [ ] Config to limit the number of docs & context that can be attached including a max depth.
 - [ ] Config to restrict certain file types from being attached.

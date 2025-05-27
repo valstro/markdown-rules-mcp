@@ -1,6 +1,7 @@
 import { logger } from "./logger.js";
 import { Config } from "./config.js";
 import {
+  AttachedItemType,
   Doc,
   DocIndex,
   IDocIndexService,
@@ -240,5 +241,23 @@ export class DocIndexService implements IDocIndexService {
           (!doc.meta.globs || doc.meta.globs.length === 0) // No auto-attachment globs
       )
       .map((doc) => doc);
+  }
+
+  /**
+   * Returns all markdown docs that match the given type.
+   * @param type - The type of docs to return.
+   * @returns The docs that match the given type.
+   */
+  getDocsByType(type: Exclude<AttachedItemType, "related">): Doc[] {
+    switch (type) {
+      case "auto":
+        return this.docs.filter((doc) => doc.meta.globs && doc.meta.globs.length > 0);
+      case "agent":
+        return this.getAgentAttachableDocs();
+      case "always":
+        return this.docs.filter((doc) => doc.meta.alwaysApply);
+      case "manual":
+        return this.docs.filter((doc) => !doc.meta.globs && !doc.meta.alwaysApply);
+    }
   }
 }

@@ -9,6 +9,7 @@ export function createMockDocIndexService(): Mocked<IDocIndexService> {
     recursivelyResolveAndLoadLinks: vi.fn(),
     getDocs: vi.fn(),
     getAgentAttachableDocs: vi.fn(),
+    getDocsByType: vi.fn(),
     getDocMap: vi.fn(() => new Map()),
     docs: [],
   };
