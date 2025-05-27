@@ -18,7 +18,7 @@ COPY tsconfig.json ./
 RUN npm run build
 
 # Use a minimal node image as the base image for running
-FROM node:20-alpine AS runner
+FROM node:18-alpine AS runner
 
 WORKDIR /app
 
@@ -31,6 +31,7 @@ RUN npm ci --production --ignore-scripts
 
 # Set environment variables
 ENV MARKDOWN_GLOB_PATTERN=**/*.md
+ENV HOIST_CONTEXT=true
 
 # Expose the port the app runs on
 EXPOSE 3000

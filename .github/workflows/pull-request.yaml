@@ -2,29 +2,30 @@ name: pull-request-main
 
 on:
   pull_request:
-    branches:
-      - main
+    types: [opened, synchronize, reopened]
+    branches: [main]
 
 jobs:
   # when in branches, if multiple runs exist and are active, cancel all but most recent run
   cancel-previous-runs:
-    runs-on: [valstro-runner, node20, linux-medium]
+    runs-on: ubuntu-latest
     steps:
       - name: Cancel Previous Runs
         uses: styfle/cancel-workflow-action@0.9.1
 
   pr-main:
-    runs-on: [valstro-runner, node20, linux-medium]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Clone Repo
-        uses: actions/checkout@v3
+      - name: Checkout PR
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          # Don't persist credentials
+          persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           # Defaults to the user or organization that owns the workflow file
@@ -32,22 +33,18 @@ jobs:
           registry-url: "https://npm.pkg.github.com"
           cache: npm
 
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Run Tests
+      - name: Install Dependencies (Safe Mode)
+        run: |
+          # Install without running scripts for security
+          npm ci --ignore-scripts
+          
+      - name: Run Tests (Trusted Repos Only)
+        # Only run tests for trusted repos to prevent arbitrary code execution
+        if: github.event.pull_request.head.repo.full_name == github.repository
         run: npm test
 
       - name: Test Build
         run: npm run build
 
-      - name: Test NPM Auth
-        run: npm whoami --registry=https://npm.pkg.github.com
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
-
-      - name: Test Publish (if release PR)
-        if: startsWith(github.head_ref, 'release-please--branches--main')
-        run: npm publish --dry-run --registry=https://npm.pkg.github.com
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
+    # Skip if from fork
+    if: github.event.pull_request.head.repo.full_name == github.repository

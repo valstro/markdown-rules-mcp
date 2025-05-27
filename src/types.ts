@@ -58,6 +58,7 @@ export interface IDocIndexService {
   getDoc(absoluteFilePath: string): Promise<Doc>;
   getDocs(absoluteFilePaths: string[]): Promise<Doc[]>;
   getAgentAttachableDocs(): Doc[];
+  getDocsByType(type: AttachedItemType): Doc[];
   getDocMap(): DocIndex;
   docs: Doc[];
 }

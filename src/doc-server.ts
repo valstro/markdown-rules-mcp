@@ -1,4 +1,3 @@
-// #!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { logger } from "./logger.js";
@@ -35,7 +34,7 @@ export class MarkdownRulesServer {
     logger.info("Server initialized");
   }
 
-  setupTools(agentAttachableDocs: Doc[]): string[] {
+  setupTools(configUsageInstructions: string | null, agentAttachableDocs: Doc[]): string[] {
     const descriptions = agentAttachableDocs
       .map((doc) => doc.meta.description)
       .filter((desc): desc is string => typeof desc === "string");
@@ -44,7 +43,9 @@ export class MarkdownRulesServer {
 
     this.server.tool(
       "get_relevant_docs",
-      "Get relevant markdown docs inside this project before answering the user's query to help you reply based on more context.",
+      `Get relevant markdown docs inside this project before answering the user's query to help you reply based on more context.
+
+      ${configUsageInstructions}`,
       {
         attachedFiles: z
           .array(z.string().describe("The file path to attach"))
@@ -65,35 +66,6 @@ export class MarkdownRulesServer {
 
         const content: { type: "text"; text: string }[] = [];
 
-        if (config.LOG_LEVEL === "debug") {
-          content.push({
-            type: "text",
-            text: `CONFIG: ${JSON.stringify(config, null, 2)}`,
-          });
-
-          content.push({
-            type: "text",
-            text: `AGENT ATTACHABLE DOCS: ${JSON.stringify(
-              this.docIndex.getAgentAttachableDocs(),
-              null,
-              2
-            )}`,
-          });
-
-          content.push({
-            type: "text",
-            text: `DOCS: ${JSON.stringify(
-              this.docIndex.docs.map((doc) => ({
-                filePath: this.fileSystem.getRelativePath(doc.filePath),
-                description: doc.meta.description,
-                linksTo: doc.linksTo.map((link) => this.fileSystem.getRelativePath(link.filePath)),
-              })),
-              null,
-              2
-            )}`,
-          });
-        }
-
         content.push({
           type: "text",
           text,
@@ -108,19 +80,89 @@ export class MarkdownRulesServer {
     return ["get_relevant_docs"];
   }
 
+  async getUsageInstructions(): Promise<string> {
+    const acceptableFilePaths = [
+      ...(config.USAGE_INSTRUCTIONS_PATH ? [config.USAGE_INSTRUCTIONS_PATH] : []),
+      "markdown-rules.md",
+      "markdown-rules.txt",
+      "markdown_rules.md",
+      "markdown_rules.txt",
+      "MARKDOWN-RULES.md",
+      "MARKDOWN_RULES.txt",
+      "MARKDOWN-RULES.txt",
+      "MARKDOWN_RULES.txt",
+    ];
+
+    let usageInstructionsFilePath = null;
+    for (const filePath of acceptableFilePaths) {
+      const doesExist = await this.fileSystem.pathExists(filePath);
+      if (doesExist) {
+        usageInstructionsFilePath = filePath;
+        break;
+      }
+    }
+
+    if (usageInstructionsFilePath) {
+      const usageInstructions = await this.fileSystem.readFile(usageInstructionsFilePath);
+      logger.info(`Found custom usage instructions from file: ${usageInstructionsFilePath}`);
+
+      return usageInstructions;
+    }
+
+    return `# Usage Instructions
+
+*   You **must** call the \`/get_relevant_docs\` MCP tool before providing your first response in any new chat session.
+*   After the initial call in a chat, you should **only** call \`get_relevant_docs\` again if one of these specific situations occurs:
+    *   The user explicitly requests it.
+    *   The user attaches new files.
+    *   The user's query introduces a completely new topic unrelated to the previous discussion.`;
+  }
+
   async run(): Promise<void> {
     try {
       await this.docIndex.buildIndex();
+      const usageInstructions = await this.getUsageInstructions();
+      const agentAttachableDocs = this.docIndex.getDocsByType("agent");
+      const autoAttachableDocs = this.docIndex.getDocsByType("auto");
+      const alwaysAttachableDocs = this.docIndex.getDocsByType("always");
+      const manualAttachableDocs = this.docIndex.getDocsByType("manual");
+      const registeredTools = this.setupTools(usageInstructions, agentAttachableDocs);
 
-      const agentAttachableDocs = this.docIndex.getAgentAttachableDocs();
+      logger.info(`Found ${alwaysAttachableDocs.length} always attached docs`);
+      if (alwaysAttachableDocs.length > 0) {
+        logger.debug(
+          `Always attached docs: ${alwaysAttachableDocs
+            .map((doc) => this.fileSystem.getRelativePath(doc.filePath))
+            .join(", ")}`
+        );
+      }
 
-      logger.info(
-        `Found ${agentAttachableDocs.length} agent attachable docs: ${agentAttachableDocs
-          .map((doc) => doc.meta.description)
-          .join(", ")}`
-      );
+      logger.info(`Found ${autoAttachableDocs.length} auto attachable docs`);
+      if (autoAttachableDocs.length > 0) {
+        logger.debug(
+          `Auto attached docs: ${autoAttachableDocs
+            .map((doc) => this.fileSystem.getRelativePath(doc.filePath))
+            .join(", ")}`
+        );
+      }
 
-      const registeredTools = this.setupTools(agentAttachableDocs);
+      logger.info(`Found ${agentAttachableDocs.length} agent attachable docs`);
+      if (agentAttachableDocs.length > 0) {
+        logger.debug(
+          `Agent attached docs: ${agentAttachableDocs
+            .map((doc) => this.fileSystem.getRelativePath(doc.filePath))
+            .join(", ")}`
+        );
+      }
+
+      logger.info(`Found ${manualAttachableDocs.length} manual attachable docs`);
+      if (manualAttachableDocs.length > 0) {
+        logger.debug(
+          `Manual attached docs: ${manualAttachableDocs
+            .map((doc) => this.fileSystem.getRelativePath(doc.filePath))
+            .join(", ")}`
+        );
+      }
 
       logger.info(
         `Starting server with ${registeredTools.length} tools: ${registeredTools.join(", ")}`

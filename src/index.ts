@@ -1,4 +1,4 @@
-// #!/usr/bin/env node
+#!/usr/bin/env node
 import { logger } from "./logger.js";
 import { config } from "./config.js";
 import { MarkdownRulesServer } from "./doc-server.js";

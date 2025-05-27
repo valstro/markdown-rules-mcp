@@ -12,17 +12,17 @@ permissions:
 
 jobs:
   merge-main:
-    runs-on: [valstro-runner, node20, linux-medium]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
       - name: Clone Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           # Defaults to the user or organization that owns the workflow file
@@ -46,8 +46,16 @@ jobs:
         if: ${{ steps.release.outputs.releases_created }}
         run: npm run build
 
-      - name: Publish Package
+      - name: Publish Package (GitHub Package Registry)
         if: ${{ steps.release.outputs.releases_created }}
         run: npm publish --registry=https://npm.pkg.github.com
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: false
+
+      - name: Publish Package (NPM Registry)
+        if: ${{ steps.release.outputs.releases_created }}
+        run: npm publish --access public --registry=https://registry.npmjs.org
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        continue-on-error: false
