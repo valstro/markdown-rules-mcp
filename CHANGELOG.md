@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.2.2...markdown-rules-mcp-v0.2.3) (2025-05-27)
+
+
+### Bug Fixes
+
+* **package:** preparing actions, docs & code for public usage ([#23](https://github.com/valstro/markdown-rules-mcp/issues/23)) ([c99113a](https://github.com/valstro/markdown-rules-mcp/commit/c99113addc97ed6541a5470c715d605d83ffc298))
+
 ## [0.2.2](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.2.1...markdown-rules-mcp-v0.2.2) (2025-05-07)
 
 
