@@ -25,10 +25,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          # Defaults to the user or organization that owns the workflow file
-          scope: "@valstro"
-          registry-url: "https://npm.pkg.github.com"
+          registry-url: "https://registry.npmjs.org"
           cache: npm
+
+      - name: Verify npm authentication
+        if: ${{ steps.release.outputs.releases_created }}
+        run: npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Install Dependencies
         run: npm ci
@@ -48,6 +52,6 @@ jobs:
 
       - name: Publish Package (NPM Registry)
         if: ${{ steps.release.outputs.releases_created }}
-        run: npm publish --access public --registry=https://registry.npmjs.org
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
