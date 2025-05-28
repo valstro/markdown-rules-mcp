@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.2.5...markdown-rules-mcp-v0.3.0) (2025-05-28)
+
+
+### Features
+
+* **config:** can exclude files from includes ([#29](https://github.com/valstro/markdown-rules-mcp/issues/29)) ([f734c99](https://github.com/valstro/markdown-rules-mcp/commit/f734c99b4d5ef4125831f1b8adea4e3cba8f1060))
+
 ## [0.2.5](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.2.4...markdown-rules-mcp-v0.2.5) (2025-05-27)
 
 
