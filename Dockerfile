@@ -29,5 +29,11 @@ COPY package.json package-lock.json ./
 # Install only production dependencies
 RUN npm ci --production --ignore-scripts
 
+# Add a working entrypoint to confirm execution
+RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
+    echo "echo 'ENTRYPOINT RAN' >&2" >> /app/entrypoint.sh && \
+    echo "node build/index.js" >> /app/entrypoint.sh && \
+    chmod +x /app/entrypoint.sh
+
 # Run the application
-ENTRYPOINT ["node", "build/index.js"]
+ENTRYPOINT ["/app/entrypoint.sh"]
