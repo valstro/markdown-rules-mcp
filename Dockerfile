@@ -1,39 +1,18 @@
-# Use the official Node.js 20 image as a parent image
-FROM node:20-alpine AS builder
+FROM node:18-alpine
 
-# Set the working directory in the container to /app
 WORKDIR /app
 
-# Copy package.json and package-lock.json into the container
-COPY package.json package-lock.json ./
+# Copy package files
+COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --ignore-scripts
+RUN npm install
 
-# Copy the rest of the application code into the container
-COPY src/ ./src/
-COPY tsconfig.json ./
+# Copy application code
+COPY . .
 
-# Build the project
+# Build the application
 RUN npm run build
 
-# Use a minimal node image as the base image for running
-FROM node:20-alpine AS runner
-
-WORKDIR /app
-
-# Copy compiled code from the builder stage
-COPY --from=builder /app/build ./build
-COPY package.json package-lock.json ./
-
-# Install only production dependencies
-RUN npm ci --production --ignore-scripts
-
-# Add a working entrypoint to confirm execution
-RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
-    echo "echo 'ENTRYPOINT RAN' >&2" >> /app/entrypoint.sh && \
-    echo "node build/index.js" >> /app/entrypoint.sh && \
-    chmod +x /app/entrypoint.sh
-
-# Run the application
-ENTRYPOINT ["/app/entrypoint.sh"]
+# Command will be provided by smithery.yaml
+CMD ["node", "build/index.js"]

@@ -120,19 +120,14 @@ export class MarkdownRulesServer {
 
   async run(): Promise<void> {
     try {
-      logger.info("Starting, about to build index");
       await this.docIndex.buildIndex();
-      logger.info("Starting, about to get usage instructions");
       const usageInstructions = await this.getUsageInstructions();
-      logger.info("Starting, about to get agent attachable docs");
       const agentAttachableDocs = this.docIndex.getDocsByType("agent");
-      logger.info("Starting, about to get auto attachable docs");
       const autoAttachableDocs = this.docIndex.getDocsByType("auto");
       const alwaysAttachableDocs = this.docIndex.getDocsByType("always");
       const manualAttachableDocs = this.docIndex.getDocsByType("manual");
-      logger.info("Starting, about to setup tools");
       const registeredTools = this.setupTools(usageInstructions, agentAttachableDocs);
-      logger.info("Starting, about to register tools");
+
       logger.info(`Found ${alwaysAttachableDocs.length} always attached docs`);
       if (alwaysAttachableDocs.length > 0) {
         logger.debug(
