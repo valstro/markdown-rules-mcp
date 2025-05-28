@@ -1,5 +1,5 @@
-# Use the official Node.js 18 image as a parent image
-FROM node:18-alpine AS builder
+# Use the official Node.js 20 image as a parent image
+FROM node:20-alpine AS builder
 
 # Set the working directory in the container to /app
 WORKDIR /app
@@ -18,7 +18,7 @@ COPY tsconfig.json ./
 RUN npm run build
 
 # Use a minimal node image as the base image for running
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
 
 WORKDIR /app
 
@@ -28,13 +28,6 @@ COPY package.json package-lock.json ./
 
 # Install only production dependencies
 RUN npm ci --production --ignore-scripts
-
-# Set environment variables
-ENV MARKDOWN_GLOB_PATTERN=**/*.md
-ENV HOIST_CONTEXT=true
-
-# Expose the port the app runs on
-EXPOSE 3000
 
 # Run the application
 ENTRYPOINT ["node", "build/index.js"]

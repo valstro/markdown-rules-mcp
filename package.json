@@ -32,7 +32,7 @@
     "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
     "prepare": "husky",
     "watch": "tsc --watch",
-    "inspector": "npm run build && LOG_LEVEL=debug MARKDOWN_GLOB_PATTERN=./docs/**/*.md npx @modelcontextprotocol/inspector node build/index.js",
+    "inspector": "npm run build && LOG_LEVEL=debug MARKDOWN_INCLUDE=./docs/**/*.md npx @modelcontextprotocol/inspector node build/index.js",
     "prepublishOnly": "npm run build",
     "release-dry-run": "release-please release-pr --dry-run --repo-url=valstro/markdown-rules-mcp --target-branch=main"
   },

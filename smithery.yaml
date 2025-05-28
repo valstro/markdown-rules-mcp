@@ -3,28 +3,40 @@
 startCommand:
   type: stdio
   configSchema:
-    # JSON Schema defining the configuration options for the MCP.
     type: object
     properties:
-      markdownGlobPattern:
+      markdownInclude:
         type: string
-        description: Glob pattern to find Markdown files.
+        description: Glob patterns to include Markdown files.
         default: "**/*.md"
+      markdownExclude:
+        type: string
+        description: Glob patterns to exclude Markdown files.
+        default: "**/node_modules/**,**/build/**,**/dist/**,**/.git/**,**/coverage/**,**/.next/**,**/.nuxt/**,**/out/**,**/.cache/**,**/tmp/**,**/temp/**"
       hoistContext:
         type: boolean
         description: Whether to hoist context.
         default: true
   commandFunction:
-    # A function that produces the CLI command to start the MCP on stdio.
     |-
     (config) => {
-      const env = {
-        // Set defaults directly in the schema, pass configured values here
-        MARKDOWN_GLOB_PATTERN: config.markdownGlobPattern,
-        HOIST_CONTEXT: config.hoistContext,
+      const env = {}
+      
+      if (config.markdownInclude) {
+        env.MARKDOWN_INCLUDE = config.markdownInclude
       }
-      // Filter out any undefined values if needed, though defaults should cover this
-      // Object.keys(env).forEach(key => env[key] === undefined && delete env[key]);
 
-      return { command: 'node', args: ['build/index.js'], env }
+      if (config.markdownExclude) {
+        env.MARKDOWN_EXCLUDE = config.markdownExclude
+      }
+
+      if (config.hoistContext) {
+        env.HOIST_CONTEXT = config.hoistContext
+      }
+
+      return { 
+        command: 'node', 
+        args: ['build/index.js'], 
+        env 
+      }
     }

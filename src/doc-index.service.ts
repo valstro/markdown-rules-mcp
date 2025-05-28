@@ -49,7 +49,7 @@ export class DocIndexService implements IDocIndexService {
     this.pendingDocPromises.clear(); // Also clear pending promises on rebuild
 
     logger.info(
-      `Building doc index from: ${this.fileSystem.getProjectRoot()} using glob: ${this.config.MARKDOWN_GLOB_PATTERN}`
+      `Building doc index from: ${this.fileSystem.getProjectRoot()} including: ${this.config.MARKDOWN_INCLUDE} and excluding: ${this.config.MARKDOWN_EXCLUDE}`
     );
 
     const initialPaths = await this.loadInitialDocs();
