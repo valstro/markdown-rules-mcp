@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-console.error("ENTRYPOINT RAN");
+
 import { config } from "./config.js";
 import { logger } from "./logger.js";
 import { MarkdownRulesServer } from "./doc-server.js";

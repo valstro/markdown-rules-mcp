@@ -1,18 +1,21 @@
-FROM node:18-alpine
+FROM node:lts-alpine
 
-WORKDIR /app
+# Create app directory
+WORKDIR /usr/src/app
 
-# Copy package files
+# Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies without triggering any unwanted scripts
+RUN npm install --ignore-scripts
 
-# Copy application code
+# Copy all source code
 COPY . .
 
 # Build the application
 RUN npm run build
 
-# Command will be provided by smithery.yaml
-CMD ["node", "build/index.js"]
+# Expose port if needed (not specified, so using none)
+
+# Command to run the server
+CMD [ "node", "build/index.js" ]
