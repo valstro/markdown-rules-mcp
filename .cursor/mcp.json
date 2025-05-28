@@ -4,8 +4,9 @@
       "command": "wsl.exe",
       "args": ["-e", "bash", "-c", "./wsl-start-server.sh"],
       "env": {
-        "MARKDOWN_GLOB_PATTERN": "./docs/**/*.md",
-        "HOIST_CONTEXT": true
+        "MARKDOWN_INCLUDE": "./docs/**/*.md",
+        "HOIST_CONTEXT": true,
+        "LOG_LEVEL": "debug"
       }
     }
   }

@@ -26,9 +26,18 @@ export class FileSystemService implements IFileSystemService {
    * @returns absolute paths to all files matching the pattern
    */
   findFiles(): Promise<string[]> {
-    return glob(this.config.MARKDOWN_GLOB_PATTERN, {
+    const includes = this.config.MARKDOWN_INCLUDE.split(",")
+      .map((pattern) => pattern.trim())
+      .filter(Boolean);
+
+    const excludes = this.config.MARKDOWN_EXCLUDE.split(",")
+      .map((pattern) => pattern.trim())
+      .filter(Boolean);
+
+    return glob(includes, {
       cwd: this.config.PROJECT_ROOT,
       absolute: true,
+      ignore: excludes,
     });
   }
 

@@ -1,3 +1,5 @@
+[![smithery badge](https://smithery.ai/badge/@valstro/markdown-rules-mcp)](https://smithery.ai/server/@valstro/markdown-rules-mcp)
+
 # Markdown Rules MCP Server
 
 **The portable alternative to Cursor Rules and IDE-specific rules.** 
@@ -23,29 +25,33 @@ Transform your project documentation into intelligent AI context using standard 
 
 ## Installation 🛠️
 
-### NPM Installation
+### Using Smithery
+
+To install the Markdown Rules MCP server for your IDE automatically via [Smithery](https://smithery.ai/server/@valstro/markdown-rules-mcp):
 
 ```bash
-npm install -g @valstro/markdown-rules-mcp
+# Cursor
+npx -y @smithery/cli install markdown-rules-mcp --client cursor
 ```
 
-## Configuration ⚙️
+```bash
+# VSCode
+npx -y @smithery/cli install markdown-rules-mcp --client vscode
+```
 
-### 1. Add the server configuration:
+```bash
+# Windsurf 
+npx -y @smithery/cli install markdown-rules-mcp --client windsurf
+```
 
-```json
-{
-  "mcpServers": {
-    "markdown-rules": {
-      "command": "npx",
-      "args": ["-y", "@valstro/markdown-rules-mcp"],
-      "env": {
-        "MARKDOWN_GLOB_PATTERN": "**/*.md",
-        "HOIST_CONTEXT": true
-      }
-    }
-  }
-}
+```bash
+# Roocode 
+npx -y @smithery/cli install markdown-rules-mcp --client roocode
+```
+
+```bash
+# Cline 
+npx -y @smithery/cli install markdown-rules-mcp --client cline
 ```
 
 ### 2. (Optional) Change the default usage instructions:
@@ -137,8 +143,9 @@ Configuration: [API Settings](./config.json?md-embed=1-10)
 
 ### Configuration
 
-- `MARKDOWN_GLOB_PATTERN` - Default: `**/*.md` - Pattern to find markdown doc files
+- `MARKDOWN_INCLUDE` - Default: `**/*.md` - Pattern to find markdown doc files
 - `HOIST_CONTEXT` - Default: `true` - Whether to show linked files before the docs that reference them
+- `MARKDOWN_EXCLUDE` - Default: `**/node_modules/**,**/build/**,**/dist/**,**/.git/**,**/coverage/**,**/.next/**,**/.nuxt/**,**/out/**,**/.cache/**,**/tmp/**,**/temp/**` - Patterns to ignore when finding markdown files
 - `USAGE_INSTRUCTIONS_PATH` - Default: `markdown-rules.md` - Path to the usage instructions file
 
 ## Example 📝
@@ -255,7 +262,7 @@ export function helperB() {
 
 1. **Tool / Docs Not Being Used**
    * Ensure the tool is enabled in the MCP server configuration
-   * Make sure your `MARKDOWN_GLOB_PATTERN` is correct & points to markdown files
+   * Make sure your `MARKDOWN_INCLUDE` is correct & points to markdown files
    * Setup `markdown-rules.md` file in your project root with usage instructions for your needs
 
 2. **New/Updated Docs Not Being Reflected**
@@ -267,7 +274,7 @@ export function helperB() {
    * Ensure Node.js is properly installed (v18 or higher)
 
 3. **Configuration Issues**
-   * Make sure your MARKDOWN_GLOB_PATTERN is correct
+   * Make sure your MARKDOWN_INCLUDE is correct
 
 4. **Connection Issues**
    * Restart Cursor completely
@@ -290,6 +297,6 @@ Built with ❤️ by Valstro
 ## Future Improvements
 
 - [ ] Support Cursor Rules YAML frontmatter format
-- [ ] Add watch mode to re-index docs when markdown files matching the MARKDOWN_GLOB_PATTERN have changed
+- [ ] Add watch mode to re-index docs when markdown files matching the MARKDOWN_INCLUDE have changed
 - [ ] Config to limit the number of docs & context that can be attached including a max depth.
 - [ ] Config to restrict certain file types from being attached.
