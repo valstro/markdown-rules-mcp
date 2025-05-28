@@ -268,7 +268,6 @@ globs: [one, two
 ---
 Content after bad FM.`;
       const doc = docParserService.parse(fileName, fileContent);
-      console.log(doc);
       expect(doc.content.startsWith("---")).toBe(true);
       expect(doc.meta).toEqual({
         description: undefined,

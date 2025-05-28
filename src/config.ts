@@ -18,4 +18,6 @@ const configSchema = z.object({
 
 export type Config = z.infer<typeof configSchema>;
 
+console.error("Starting, about to parse config");
 export const config = configSchema.parse(process.env);
+console.error("Parsed config", config);
