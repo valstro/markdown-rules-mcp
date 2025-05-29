@@ -3,7 +3,12 @@ startCommand:
   configSchema:
     # JSON Schema defining the configuration options for the MCP.
     type: object
+    required:
+      - projectRoot
     properties:
+      projectRoot:
+        type: string
+        description: The absolute path to the project root.
       markdownInclude:
         type: string
         description: The glob pattern or patterns to include in the doc index.
@@ -21,9 +26,16 @@ startCommand:
     |-
     (config) => ({
         command: 'node',
-        args: ['build/index.js']
+        args: ['build/index.js'],
+        env: {
+          MARKDOWN_INCLUDE: config.markdownInclude || "",
+          MARKDOWN_EXCLUDE: config.markdownExclude || "",
+          HOIST_CONTEXT: config.hoistContext ? "true" : "false",
+          PROJECT_ROOT: config.projectRoot
+        }
     })  
   exampleConfig:
+    projectRoot: "/Users/jason/Projects/smithery"
     markdownInclude: "**/*.md"
     markdownExclude: "**/node_modules/**,**/build/**,**/dist/**,**/.git/**,**/coverage/**,**/.next/**,**/.nuxt/**,**/out/**,**/.cache/**,**/tmp/**,**/temp/**"
     hoistContext: true

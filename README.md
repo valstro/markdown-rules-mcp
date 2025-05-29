@@ -143,10 +143,10 @@ Configuration: [API Settings](./config.json?md-embed=1-10)
 
 ### Configuration
 
+- `PROJECT_ROOT` - Default: `process.cwd()` - The absolute path to the project root.
 - `MARKDOWN_INCLUDE` - Default: `**/*.md` - Pattern to find markdown doc files
 - `HOIST_CONTEXT` - Default: `true` - Whether to show linked files before the docs that reference them
 - `MARKDOWN_EXCLUDE` - Default: `**/node_modules/**,**/build/**,**/dist/**,**/.git/**,**/coverage/**,**/.next/**,**/.nuxt/**,**/out/**,**/.cache/**,**/tmp/**,**/temp/**` - Patterns to ignore when finding markdown files
-- `USAGE_INSTRUCTIONS_PATH` - Default: `markdown-rules.md` - Path to the usage instructions file
 
 ## Example 📝
 
