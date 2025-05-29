@@ -40,7 +40,8 @@ npx -y @smithery/cli install markdown-rules-mcp --client cursor
       "command": "npx",
       "args": ["-y", "@valstro/markdown-rules-mcp"],
       "env": {
-        "MARKDOWN_INCLUDE": "/absolute/path/to/docs/**/*.md",
+        "PROJECT_ROOT": "/absolute/path/to/project/root",
+        "MARKDOWN_INCLUDE": "./docs/**/*.md",
         "HOIST_CONTEXT": true
       }
     }
