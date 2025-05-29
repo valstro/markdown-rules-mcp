@@ -51,6 +51,8 @@ export interface ILinkExtractorService {
   extractLinks(docFilePath: string, docContent: string): DocLink[];
 }
 
+export type DocIndexType = Exclude<AttachedItemType, "related">;
+
 export interface IDocIndexService {
   buildIndex(): Promise<DocIndex>;
   loadInitialDocs(): Promise<Set<string>>;
@@ -58,7 +60,7 @@ export interface IDocIndexService {
   getDoc(absoluteFilePath: string): Promise<Doc>;
   getDocs(absoluteFilePaths: string[]): Promise<Doc[]>;
   getAgentAttachableDocs(): Doc[];
-  getDocsByType(type: AttachedItemType): Doc[];
+  getDocsByType(type: DocIndexType): Doc[];
   getDocMap(): DocIndex;
   docs: Doc[];
 }

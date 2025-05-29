@@ -66,6 +66,12 @@ The default usage instructions are:
 
 Note: You can change the default usage instructions file path by adding the `USAGE_INSTRUCTIONS_PATH` environment variable to the MCP server configuration.
 
+## Tools
+
+- `get_relevant_docs` - Get relevant docs based on the user's query. Is called based on the [usage instructions](#configuring-usage-instructions-optional).
+- `list_indexed_docs` - Count and preview indexed docs & usage instructions. Useful for debugging.
+- `reindex_docs` - Reindex the docs. Useful if docs in the index have changed or new docs have been added.
+
 ## How To Use 📝
 
 Create `.md` files in your project with YAML frontmatter to define how they should be included in AI context.
