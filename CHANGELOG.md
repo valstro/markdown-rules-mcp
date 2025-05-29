@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.4](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.4.3...markdown-rules-mcp-v0.4.4) (2025-05-29)
+
+
+### Bug Fixes
+
+* **smithery:** syntax issue ([#46](https://github.com/valstro/markdown-rules-mcp/issues/46)) ([1ca7da0](https://github.com/valstro/markdown-rules-mcp/commit/1ca7da0e2b14aaa0788dea476507257e86664720))
+
 ## [0.4.3](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.4.2...markdown-rules-mcp-v0.4.3) (2025-05-29)
 
 
