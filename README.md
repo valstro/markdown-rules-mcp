@@ -25,6 +25,14 @@ Transform your project documentation into intelligent AI context using standard 
 
 ### Manual Installation
 
+1. Install the MCP server
+
+```bash
+npm install -g @valstro/markdown-rules-mcp
+```
+
+2. Configure the MCP server
+
 ```json
 {
   "mcpServers": {
