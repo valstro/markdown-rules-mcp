@@ -28,4 +28,7 @@ startCommand:
           HOIST_CONTEXT: config.hoistContext
         }
     })  
-  exampleConfig: {}
+  exampleConfig:
+    markdownInclude: "**/*.md"
+    markdownExclude: "**/node_modules/**,**/build/**,**/dist/**,**/.git/**,**/coverage/**,**/.next/**,**/.nuxt/**,**/out/**,**/.cache/**,**/tmp/**,**/temp/**"
+    hoistContext: true
