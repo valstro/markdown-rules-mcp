@@ -10,7 +10,7 @@ const logLevelMap = {
   error: 4,
 };
 
-const currentLogLevel = logLevelMap[logLevel];
+const currentLogLevel = logLevelMap[logLevel as keyof typeof logLevelMap] || logLevelMap.info;
 
 export const logger = {
   log: (message: string) => {

@@ -8,7 +8,7 @@
     "url": "git+https://github.com/valstro/markdown-rules-mcp.git"
   },
   "bin": {
-    "markdown-rules": "build/index.js"
+    "markdown-rules-mcp": "build/index.js"
   },
   "files": [
     "build"

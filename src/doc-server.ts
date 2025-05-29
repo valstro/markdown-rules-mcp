@@ -77,7 +77,95 @@ export class MarkdownRulesServer {
       }
     );
 
-    return ["get_relevant_docs"];
+    this.server.tool(
+      "reindex_docs",
+      "Reindex the docs. Useful for when you want to force a re-index of the docs because there were changes to the docs or the index",
+      {},
+      async () => {
+        await this.docIndex.buildIndex();
+        const totalDocsCount = this.docIndex.docs.length;
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Reindexed docs. Found ${totalDocsCount} total docs in the index. To see a summary of the docs in the index, say "List indexed docs".`,
+            },
+          ],
+        };
+      }
+    );
+
+    this.server.tool(
+      "list_indexed_docs",
+      "Print a full count & summary of the docs in the index. Also shows the usage instructions for the `get_relevant_docs` tool. Useful for debugging. Will only show the first 20 docs in each category & a small preview of the content.",
+      {},
+      async () => {
+        const createDocSummary = (doc: Doc) => {
+          return `- ${this.fileSystem.getRelativePath(doc.filePath)}: ${doc.meta.description || doc.content.replace(/\n/g, " ").slice(0, 50).trim()}...`;
+        };
+
+        const createDocsPreview = (docs: Doc[], previewLength: number = 20) => {
+          return (
+            docs
+              .slice(0, previewLength)
+              .map((doc) => createDocSummary(doc))
+              .join("\n") +
+            (docs.length > previewLength ? `\n...and ${docs.length - previewLength} more...` : "")
+          );
+        };
+
+        const totalDocsCount = this.docIndex.docs.length;
+        const agentDocs = this.docIndex.getDocsByType("agent");
+        const autoDocs = this.docIndex.getDocsByType("auto");
+        const alwaysDocs = this.docIndex.getDocsByType("always");
+        const manualDocs = this.docIndex.getDocsByType("manual");
+        const extraMessages: { type: "text"; text: string }[] = [];
+
+        if (agentDocs.length > 0) {
+          extraMessages.push({
+            type: "text",
+            text: `Agent docs preview:\n${createDocsPreview(agentDocs)}`,
+          });
+        }
+
+        if (autoDocs.length > 0) {
+          extraMessages.push({
+            type: "text",
+            text: `Auto docs preview:\n${createDocsPreview(autoDocs)}`,
+          });
+        }
+
+        if (alwaysDocs.length > 0) {
+          extraMessages.push({
+            type: "text",
+            text: `Always docs preview:\n${createDocsPreview(alwaysDocs)}`,
+          });
+        }
+
+        if (manualDocs.length > 0) {
+          extraMessages.push({
+            type: "text",
+            text: `Manual & linked docs preview:\n${createDocsPreview(manualDocs)}`,
+          });
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Found ${totalDocsCount} total docs in the index:
+Agent docs: ${agentDocs.length}
+Auto docs: ${autoDocs.length}
+Always docs: ${alwaysDocs.length}
+Manual & linked docs: ${manualDocs.length}${configUsageInstructions ? `\n\nWith these usage instructions: ${configUsageInstructions?.replace(/\n/g, " ").slice(0, 50)?.trim()}...` : ""}`,
+            },
+            ...extraMessages,
+          ],
+        };
+      }
+    );
+
+    return ["get_relevant_docs", "list_indexed_docs"];
   }
 
   async getUsageInstructions(): Promise<string> {

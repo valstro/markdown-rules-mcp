@@ -4,6 +4,7 @@ import {
   AttachedItemType,
   Doc,
   DocIndex,
+  DocIndexType,
   IDocIndexService,
   IDocParserService,
   IFileSystemService,
@@ -248,7 +249,7 @@ export class DocIndexService implements IDocIndexService {
    * @param type - The type of docs to return.
    * @returns The docs that match the given type.
    */
-  getDocsByType(type: Exclude<AttachedItemType, "related">): Doc[] {
+  getDocsByType(type: DocIndexType): Doc[] {
     switch (type) {
       case "auto":
         return this.docs.filter((doc) => doc.meta.globs && doc.meta.globs.length > 0);
@@ -257,7 +258,9 @@ export class DocIndexService implements IDocIndexService {
       case "always":
         return this.docs.filter((doc) => doc.meta.alwaysApply);
       case "manual":
-        return this.docs.filter((doc) => !doc.meta.globs && !doc.meta.alwaysApply);
+        return this.docs.filter(
+          (doc) => (!doc.meta.globs || doc.meta.globs.length === 0) && !doc.meta.alwaysApply
+        );
     }
   }
 }
