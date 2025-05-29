@@ -3,6 +3,10 @@ startCommand:
   configSchema:
     # JSON Schema defining the configuration options for the MCP.
     type: object
+    required:
+      - markdownInclude
+      - markdownExclude
+      - hoistContext
     properties:
       markdownInclude:
         type: string
