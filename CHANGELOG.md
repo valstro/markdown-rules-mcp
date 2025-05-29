@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.4.1...markdown-rules-mcp-v0.4.2) (2025-05-29)
+
+
+### Bug Fixes
+
+* **smithery:** adding smithery config forwarding ([#42](https://github.com/valstro/markdown-rules-mcp/issues/42)) ([dce4cf0](https://github.com/valstro/markdown-rules-mcp/commit/dce4cf0db59f9bcb8e58b398f12107bbcf6bfa5c))
+
 ## [0.4.1](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.4.0...markdown-rules-mcp-v0.4.1) (2025-05-29)
 
 
