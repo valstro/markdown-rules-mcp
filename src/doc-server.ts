@@ -4,6 +4,9 @@ import { logger } from "./logger.js";
 import { Doc, IDocContextService, IDocIndexService, IFileSystemService } from "./types.js";
 import { z } from "zod";
 import { config } from "./config.js";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const packageJson = require("../package.json");
 
 /**
  * Markdown Rules MCP Server
@@ -28,7 +31,7 @@ export class MarkdownRulesServer {
   ) {
     this.server = new McpServer({
       name: "markdown-rules",
-      version: "0.1.0",
+      version: packageJson.version || "0.1.0",
     });
 
     logger.info("Server initialized");
@@ -151,6 +154,15 @@ export class MarkdownRulesServer {
 
         return {
           content: [
+            {
+              type: "text",
+              text: `Server version: ${packageJson.version || "0.1.0"}
+MCP Root: ${process.cwd()}              
+Project root: ${config.PROJECT_ROOT}
+Markdown include: ${config.MARKDOWN_INCLUDE}
+Markdown exclude: ${config.MARKDOWN_EXCLUDE}
+Hoist context: ${config.HOIST_CONTEXT}`,
+            },
             {
               type: "text",
               text: `Found ${totalDocsCount} total docs in the index:
