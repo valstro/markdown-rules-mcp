@@ -23,14 +23,6 @@ Transform your project documentation into intelligent AI context using standard 
 
 ## Installation 🛠️
 
-### Installing via Smithery (Recommended)
-
-To install the Markdown Rules MCP server for your IDE automatically via [Smithery](https://smithery.ai/server/@valstro/markdown-rules-mcp):
-
-```bash
-npx -y @smithery/cli install markdown-rules-mcp --client cursor
-```
-
 ### Manual Installation
 
 ```json
@@ -48,6 +40,10 @@ npx -y @smithery/cli install markdown-rules-mcp --client cursor
   }
 }
 ```
+
+### Installing via Smithery
+
+To install the Markdown Rules MCP server for your IDE automatically via [Smithery](https://smithery.ai/server/@valstro/markdown-rules-mcp):
 
 ## Configuring Usage Instructions (Optional)
 
