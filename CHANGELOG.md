@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.3](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.4.2...markdown-rules-mcp-v0.4.3) (2025-05-29)
+
+
+### Bug Fixes
+
+* **tools:** more debugging info in list indexed docs ([#44](https://github.com/valstro/markdown-rules-mcp/issues/44)) ([b0ef17c](https://github.com/valstro/markdown-rules-mcp/commit/b0ef17c1225f5c3131d976d94999cf5955404bef))
+
 ## [0.4.2](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.4.1...markdown-rules-mcp-v0.4.2) (2025-05-29)
 
 
