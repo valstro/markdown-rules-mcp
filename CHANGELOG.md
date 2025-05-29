@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.4.0...markdown-rules-mcp-v0.4.1) (2025-05-29)
+
+
+### Bug Fixes
+
+* **tool:** quotes in tool call ([#40](https://github.com/valstro/markdown-rules-mcp/issues/40)) ([da9f8e2](https://github.com/valstro/markdown-rules-mcp/commit/da9f8e2fe31a46fab6e87304f4b72551f6bb13f3))
+
 ## [0.4.0](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.3.0...markdown-rules-mcp-v0.4.0) (2025-05-29)
 
 
