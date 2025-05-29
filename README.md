@@ -21,40 +21,34 @@ Transform your project documentation into intelligent AI context using standard 
 - [Node.js](https://nodejs.org/) (v18 or higher)
 - [Cursor](https://www.cursor.com/) or other MCP supported AI coding tools
 
-> **Note for Contributors:** While the built package runs on Node.js 18+, development and CI require Node.js 20+ for building and testing.
-
 ## Installation 🛠️
 
-### Using Smithery
+### Installing via Smithery (Recommended)
 
 To install the Markdown Rules MCP server for your IDE automatically via [Smithery](https://smithery.ai/server/@valstro/markdown-rules-mcp):
 
 ```bash
-# Cursor
 npx -y @smithery/cli install markdown-rules-mcp --client cursor
 ```
 
-```bash
-# VSCode
-npx -y @smithery/cli install markdown-rules-mcp --client vscode
+### Manual Installation
+
+```json
+{
+  "mcpServers": {
+    "markdown-rules-mcp": {
+      "command": "npx",
+      "args": ["-y", "@valstro/markdown-rules-mcp"],
+      "env": {
+        "MARKDOWN_INCLUDE": "/absolute/path/to/docs/**/*.md",
+        "HOIST_CONTEXT": true
+      }
+    }
+  }
+}
 ```
 
-```bash
-# Windsurf 
-npx -y @smithery/cli install markdown-rules-mcp --client windsurf
-```
-
-```bash
-# Roocode 
-npx -y @smithery/cli install markdown-rules-mcp --client roocode
-```
-
-```bash
-# Cline 
-npx -y @smithery/cli install markdown-rules-mcp --client cline
-```
-
-### 2. (Optional) Change the default usage instructions:
+## Configuring Usage Instructions (Optional)
 
 To change the default usage instructions, create a `markdown-rules.md` file in your project root. The file should contain the usage instructions for the `get_relevant_docs` tool.
 
