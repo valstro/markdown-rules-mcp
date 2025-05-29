@@ -3,10 +3,6 @@ startCommand:
   configSchema:
     # JSON Schema defining the configuration options for the MCP.
     type: object
-    required:
-      - markdownInclude
-      - markdownExclude
-      - hoistContext
     properties:
       markdownInclude:
         type: string
@@ -25,12 +21,7 @@ startCommand:
     |-
     (config) => ({
         command: 'node',
-        args: ['build/index.js'],
-        env: {
-          MARKDOWN_INCLUDE: config.markdownInclude,
-          MARKDOWN_EXCLUDE: config.markdownExclude,
-          HOIST_CONTEXT: config.hoistContext
-        }
+        args: ['build/index.js']
     })  
   exampleConfig:
     markdownInclude: "**/*.md"
