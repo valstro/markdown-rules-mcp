@@ -1,5 +1,3 @@
-[![smithery badge](https://smithery.ai/badge/@valstro/markdown-rules-mcp)](https://smithery.ai/server/@valstro/markdown-rules-mcp)
-
 # Markdown Rules MCP Server
 
 **The portable alternative to Cursor Rules and IDE-specific rules.** 
@@ -48,10 +46,6 @@ npm install -g @valstro/markdown-rules-mcp
   }
 }
 ```
-
-### Installing via Smithery
-
-To install the Markdown Rules MCP server for your IDE automatically via [Smithery](https://smithery.ai/server/@valstro/markdown-rules-mcp):
 
 ## Configuring Usage Instructions (Optional)
 
