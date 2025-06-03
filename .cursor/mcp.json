@@ -2,12 +2,7 @@
   "mcpServers": {
     "markdown-rules-wsl": {
       "command": "wsl.exe",
-      "args": ["-e", "bash", "-c", "./wsl-start-server.sh"],
-      "env": {
-        "MARKDOWN_INCLUDE": "./docs/**/*.md",
-        "HOIST_CONTEXT": true,
-        "LOG_LEVEL": "debug"
-      }
+      "args": ["-e", "bash", "-c", "./wsl-start-server.sh"]
     }
   }
 }

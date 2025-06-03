@@ -1,3 +1,5 @@
+[![npm downloads](https://img.shields.io/npm/dm/@valstro/markdown-rules-mcp)](https://www.npmjs.com/package/@valstro/markdown-rules-mcp) [![smithery badge](https://smithery.ai/badge/@valstro/markdown-rules-mcp)](https://smithery.ai/server/@valstro/markdown-rules-mcp) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 # Markdown Rules MCP Server
 
 **The portable alternative to Cursor Rules and IDE-specific rules.** 
@@ -21,22 +23,55 @@ Transform your project documentation into intelligent AI context using standard 
 
 ## Installation 🛠️
 
-### Manual Installation
+### Installing via Smithery
 
-1. Install the MCP server
+To install the Markdown Rules MCP server for your IDE automatically via [Smithery](https://smithery.ai/server/@valstro/markdown-rules-mcp):
 
 ```bash
-npm install -g @valstro/markdown-rules-mcp
+# Cursor
+npx -y @smithery/cli install markdown-rules-mcp --client cursor
 ```
 
-2. Configure the MCP server
+```bash
+# Windsurf
+npx -y @smithery/cli install markdown-rules-mcp --client windsurf
+```
+
+See [Smithery](https://smithery.ai/server/@valstro/markdown-rules-mcp) for installation options for other IDEs.
+
+### Manual Installation
+
+#### MacOS / Linux
 
 ```json
 {
   "mcpServers": {
     "markdown-rules-mcp": {
       "command": "npx",
-      "args": ["-y", "@valstro/markdown-rules-mcp"],
+      "args": ["-y", "@valstro/markdown-rules-mcp@latest"],
+      "env": {
+        "PROJECT_ROOT": "/absolute/path/to/project/root",
+        "MARKDOWN_INCLUDE": "./docs/**/*.md",
+        "HOIST_CONTEXT": true
+      }
+    }
+  }
+}
+```
+
+#### Windows
+
+```json
+{
+  "mcpServers": {
+    "markdown-rules-mcp": {
+      "command": "cmd.exe",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@valstro/markdown-rules-mcp@latest"
+      ],
       "env": {
         "PROJECT_ROOT": "/absolute/path/to/project/root",
         "MARKDOWN_INCLUDE": "./docs/**/*.md",
@@ -255,14 +290,31 @@ export function helperB() {
 </file>
 ```
 
+## Caveats & Potential Downsides
+
+### Potentially Large Context 
+
+Markdown Rules will diligently parse through all markdown links (?md-link=true) and embeds (e.g., ?md-embed=1-10) to include referenced content. This comprehensiveness can lead to using a significant portion of the AI's context window, especially with deeply linked documentation. 
+
+However, I find this to be a necessary trade-off for providing complete context in the large, bespoke codebases this tool is designed for.
+
+### MCP Tool Invocation Variance
+
+Occasionally, depending on the specific LLM you're using, the model might not call the tool to fetch relevant docs as consistently as one might hope without explicit prompting. This behavior can often be improved by tweaking the usage instructions in your `markdown-rules.md` file or by directly asking the AI to consult the docs. 
+
+I've personally found Anthropic models tend to call the tool very consistently without needing explicit prompts.
+
 ## Troubleshooting 🔧
 
 ### Common Issues
 
 1. **Tool / Docs Not Being Used**
    * Ensure the tool is enabled in the MCP server configuration
+   * Make sure you're providing an absolute path to the PROJECT_ROOT in the MCP server configuration
    * Make sure your `MARKDOWN_INCLUDE` is correct & points to markdown files
    * Setup `markdown-rules.md` file in your project root with usage instructions for your needs
+   * Make sure to wrap your description field in YAML frontmatter in quotes (e.g. `description: "Project Overview"`)
+   * To debug why your doc isn't being used, you can use the `list_indexed_docs` tool to see what docs are available and what's in the index. Just ask "what docs are available in the index?"
 
 2. **New/Updated Docs Not Being Reflected**
    * Make sure to restart the server after making changes to docs or the `markdown-rules.md` file (there's no watch mode yet)

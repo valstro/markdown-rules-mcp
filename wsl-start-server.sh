@@ -17,9 +17,13 @@ if [ -d "$HOME/.volta/bin" ]; then
   export PATH="$HOME/.volta/bin:$PATH"
 fi
 
-# Get script location (inside of project root) and navigate to project root
-PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# Get script location and navigate to project root
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/" && pwd )"
 cd "$PROJECT_ROOT"
 
-# Run the server with debugger disabled
-LOG_LEVEL=debug MARKDOWN_INCLUDE=./docs/**/*.md node build/index.js
+# Install the package globally
+npm install @valstro/markdown-rules-mcp@latest -g --silent
+
+# Run the package with the correct bin name
+MARKDOWN_INCLUDE="./docs/**/*.md" markdown-rules-mcp
