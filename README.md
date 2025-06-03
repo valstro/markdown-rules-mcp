@@ -1,8 +1,5 @@
-<<<<<<< HEAD
-[![smithery badge](https://smithery.ai/badge/@valstro/markdown-rules-mcp)](https://smithery.ai/server/@valstro/markdown-rules-mcp) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![npm downloads](https://img.shields.io/npm/dm/@valstro/markdown-rules-mcp)](https://www.npmjs.com/package/@valstro/markdown-rules-mcp)
+[![npm downloads](https://img.shields.io/npm/dm/@valstro/markdown-rules-mcp)](https://www.npmjs.com/package/@valstro/markdown-rules-mcp) [![smithery badge](https://smithery.ai/badge/@valstro/markdown-rules-mcp)](https://smithery.ai/server/@valstro/markdown-rules-mcp) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-=======
->>>>>>> 64fc6a545dde758a41b864ab96a2248c789028b5
 # Markdown Rules MCP Server
 
 **The portable alternative to Cursor Rules and IDE-specific rules.** 
