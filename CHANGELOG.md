@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.5](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.4.4...markdown-rules-mcp-v0.4.5) (2025-06-03)
+
+
+### Bug Fixes
+
+* **docs:** updating docs in line with working smithery cli setup ([#49](https://github.com/valstro/markdown-rules-mcp/issues/49)) ([3a43f15](https://github.com/valstro/markdown-rules-mcp/commit/3a43f15d014ac7636cfb50e5e6b8edb82f93737c))
+
 ## [0.4.4](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.4.3...markdown-rules-mcp-v0.4.4) (2025-05-29)
 
 
