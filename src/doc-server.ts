@@ -37,7 +37,9 @@ export class MarkdownRulesServer {
     logger.info("Server initialized");
   }
 
-  setupTools(configUsageInstructions: string | null, agentAttachableDocs: Doc[]): string[] {
+  async setupTools(): Promise<string[]> {
+    const configUsageInstructions = await this.getUsageInstructions();
+    const agentAttachableDocs = this.docIndex.getDocsByType("agent");
     const descriptions = agentAttachableDocs
       .map((doc) => doc.meta.description)
       .filter((desc): desc is string => typeof desc === "string");
@@ -54,18 +56,13 @@ export class MarkdownRulesServer {
           .array(z.string().describe("The file path to attach"))
           .describe("A list of file paths included in the user's query.")
           .optional(),
-        relevantProjectDocs: z
-          .array(projectDocsEnum.describe("The description of the relevant doc"))
-          .describe(
-            "A list of docs by their description in the project. Only include docs whose description directly matches the user's intent or topic. Don't include docs for the sake of including them. For example, if doc list is ['Frontend Guidelines', 'Frontend Testing Guidelines', 'Database Setup', 'API Reference', 'Github Actions'] and the user's query is 'How do I set up the database?', include 'Database Setup' in the list. If the query is 'How do I write frontend tests?', only include 'Frontend Testing Guidelines'. Do not include docs that are unrelated to the query and try to be specific (e.g., do not include 'API Reference' for a database setup question). If the user's query is 'How does git work?', do not include any docs. This is clearly a generic question unrelated to this specific project."
-          )
+        projectDocs: z
+          .array(projectDocsEnum)
+          .describe("A list of docs by their description in the project.")
           .optional(),
       },
-      async ({ attachedFiles = [], relevantProjectDocs = [] }) => {
-        const text = await this.docsContextService.buildContextOutput(
-          attachedFiles,
-          relevantProjectDocs
-        );
+      async ({ attachedFiles = [], projectDocs = [] }) => {
+        const text = await this.docsContextService.buildContextOutput(attachedFiles, projectDocs);
 
         const content: { type: "text"; text: string }[] = [];
 
@@ -87,6 +84,8 @@ export class MarkdownRulesServer {
       async () => {
         await this.docIndex.buildIndex();
         const totalDocsCount = this.docIndex.docs.length;
+        await this.setupTools(); // re-register tools
+
         return {
           content: [
             {
@@ -211,22 +210,32 @@ Manual & linked docs: ${manualDocs.length}${configUsageInstructions ? `\n\nWith 
 
     return `# Usage Instructions
 
-*   You **must** call the \`/get_relevant_docs\` MCP tool before providing your first response in any new chat session.
-*   After the initial call in a chat, you should **only** call \`get_relevant_docs\` again if one of these specific situations occurs:
+## When to use "get_relevant_docs" tool
+
+*   You **must** call the "get_relevant_docs" MCP tool before providing your first response in any new chat session.
+*   After the initial call in a chat, you should **only** call "get_relevant_docs" again if one of these specific situations occurs:
     *   The user explicitly requests it.
     *   The user attaches new files.
-    *   The user's query introduces a completely new topic unrelated to the previous discussion.`;
+    *   The user's query introduces a completely new topic unrelated to the previous discussion.
+
+## How to use "get_relevant_docs" tool
+
+*   "attachedFiles": ALWAYS include file paths the user has attached in their query.
+*   "projectDocs"
+    *   ONLY include project docs that are VERY RELEVANT to user's query.
+    *   You must have a high confidence when picking docs that may be relevant. 
+    *   If the user's query is a generic question unrelated to this specific project, leave this empty.
+    *   Always heavily bias towards leaving this empty.`;
   }
 
   async run(): Promise<void> {
     try {
       await this.docIndex.buildIndex();
-      const usageInstructions = await this.getUsageInstructions();
       const agentAttachableDocs = this.docIndex.getDocsByType("agent");
       const autoAttachableDocs = this.docIndex.getDocsByType("auto");
       const alwaysAttachableDocs = this.docIndex.getDocsByType("always");
       const manualAttachableDocs = this.docIndex.getDocsByType("manual");
-      const registeredTools = this.setupTools(usageInstructions, agentAttachableDocs);
+      const registeredTools = await this.setupTools();
 
       logger.info(`Found ${alwaysAttachableDocs.length} always attached docs`);
       if (alwaysAttachableDocs.length > 0) {
