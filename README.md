@@ -6,6 +6,8 @@
 
 Transform your project documentation into intelligent AI context using standard Markdown files that work across any MCP-compatible AI tool. <u>Escape vendor lock-in and scattered documentation forever.</u>
 
+<a href="https://x.com/aidenybai/status/1923781810820968857" target="_blank"><img src="./tweet.png" alt="Competing Standards"></a>
+
 ## Why Choose Markdown Rules?
 
 🚀 **Universal Compatibility** — Write once, use everywhere. Your documentation works with Cursor, Claude Desktop, and any future MCP-enabled AI tool. <u>No vendor lock-in.</u>
@@ -314,6 +316,7 @@ I've personally found Anthropic models tend to call the tool very consistently w
    * Make sure your `MARKDOWN_INCLUDE` is correct & points to markdown files
    * Setup `markdown-rules.md` file in your project root with usage instructions for your needs
    * Make sure to wrap your description field in YAML frontmatter in quotes (e.g. `description: "Project Overview"`)
+   * Make sure to use proper array syntax in the globs field (e.g. `globs: ["**/*.ts", "src/**"]`)
    * To debug why your doc isn't being used, you can use the `list_indexed_docs` tool to see what docs are available and what's in the index. Just ask "what docs are available in the index?"
 
 2. **New/Updated Docs Not Being Reflected**
