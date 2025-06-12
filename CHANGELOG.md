@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.6](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.4.5...markdown-rules-mcp-v0.4.6) (2025-06-12)
+
+
+### Bug Fixes
+
+* **agent-docs:** re-index agent docs tool & simplify tool description ([#51](https://github.com/valstro/markdown-rules-mcp/issues/51)) ([ce16132](https://github.com/valstro/markdown-rules-mcp/commit/ce161322d3cd5bf041c8625ff847d75339075fac))
+
 ## [0.4.5](https://github.com/valstro/markdown-rules-mcp/compare/markdown-rules-mcp-v0.4.4...markdown-rules-mcp-v0.4.5) (2025-06-03)
 
 
