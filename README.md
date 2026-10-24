@@ -1,4 +1,4 @@
-[![npm downloads](https://img.shields.io/npm/dm/@valstro/markdown-rules-mcp)](https://www.npmjs.com/package/@valstro/markdown-rules-mcp) [![smithery badge](https://smithery.ai/badge/@valstro/markdown-rules-mcp)](https://smithery.ai/server/@valstro/markdown-rules-mcp) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![npm downloads](https://img.shields.io/npm/dm/@valstro/markdown-rules-mcp)](https://www.npmjs.com/package/@valstro/markdown-rules-mcp) [![LightNow capabilities](https://lightnow.ai/badge/io.github.valstro/markdown-rules-mcp)](https://lightnow.ai/servers/io.github.valstro/markdown-rules-mcp) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # Markdown Rules MCP Server
 
